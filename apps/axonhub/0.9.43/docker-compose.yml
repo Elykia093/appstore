@@ -1,0 +1,27 @@
+services:
+  axonhub:
+    image: looplj/axonhub:latest
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    environment:
+      AXONHUB_DB_DIALECT: postgres
+      AXONHUB_DB_DSN: postgresql://${PANEL_DB_USER}:${PANEL_DB_USER_PASSWORD}@${PANEL_DB_HOST}:${PANEL_DB_PORT}/${PANEL_DB_NAME}?sslmode=disable
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./data:/data
+    ports:
+      - "${PANEL_APP_PORT_HTTP}:8090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8090/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      createdBy: "Apps"
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true

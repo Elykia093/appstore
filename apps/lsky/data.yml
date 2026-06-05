@@ -1,0 +1,26 @@
+name: Lsky Pro
+tags:
+  - 图床
+  - 存储
+title: Lsky Pro 兰空图床
+description: Lsky Pro 是一个可自托管的图片上传、管理与外链图床系统，本模板使用 PostgreSQL。
+additionalProperties:
+  key: lsky
+  name: Lsky Pro
+  tags:
+    - Tool
+    - Storage
+  shortDescZh: 自托管图床系统（PostgreSQL）
+  shortDescEn: Self-hosted image hosting system with PostgreSQL
+  type: website
+  crossVersionUpdate: true
+  limit: 0
+  website: https://www.lsky.pro/
+  github: https://github.com/lsky-org/lsky-pro
+  document: https://docs.lsky.pro/guide/install
+  description:
+    en: Lsky Pro is a self-hosted image hosting and management system. This template uses PostgreSQL.
+    zh: Lsky Pro 是一个可自托管的图床与图片管理系统，本模板使用 PostgreSQL。
+  architectures:
+    - amd64
+    - arm64

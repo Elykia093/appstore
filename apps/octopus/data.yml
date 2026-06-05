@@ -1,0 +1,26 @@
+name: Octopus
+tags:
+  - AI / 大模型
+  - 网关
+title: Octopus LLM API 聚合与负载均衡服务
+description: Octopus 是一个面向个人的 LLM API 聚合与负载均衡服务，支持 OpenAI、Anthropic 等协议转换，本模板使用 PostgreSQL。
+additionalProperties:
+  key: octopus
+  name: Octopus
+  tags:
+    - AI
+    - Tool
+  shortDescZh: LLM API 聚合与负载均衡服务（PostgreSQL）
+  shortDescEn: LLM API aggregation and load balancing service with PostgreSQL
+  type: website
+  crossVersionUpdate: true
+  limit: 0
+  website: https://github.com/bestruirui/octopus
+  github: https://github.com/bestruirui/octopus
+  document: https://github.com/bestruirui/octopus
+  description:
+    en: Octopus is a simple LLM API aggregation and load balancing service for individuals. This template uses PostgreSQL.
+    zh: Octopus 是面向个人的 LLM API 聚合与负载均衡服务，本模板使用 PostgreSQL。
+  architectures:
+    - amd64
+    - arm64

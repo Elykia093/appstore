@@ -1,0 +1,25 @@
+services:
+  lx-sync-server:
+    image: ghcr.io/xcq0607/lxserver:latest
+    container_name: ${CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${PANEL_APP_PORT_HTTP}:9527"
+    environment:
+      FRONTEND_PASSWORD: ${FRONTEND_PASSWORD}
+      WEBDAV_URL: ${WEBDAV_URL}
+      WEBDAV_USERNAME: ${WEBDAV_USERNAME}
+      WEBDAV_PASSWORD: ${WEBDAV_PASSWORD}
+      USER_ENABLE_PATH: ${USER_ENABLE_PATH}
+      USER_ENABLE_ROOT: ${USER_ENABLE_ROOT}
+    volumes:
+      - ./data:/server/data
+      - ./logs:/server/logs
+    labels:
+      createdBy: "Apps"
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true

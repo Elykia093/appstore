@@ -1,0 +1,12 @@
+host: ""
+port: 8317
+
+remote-management:
+  allow-remote: true
+  secret-key: ""
+  disable-control-panel: false
+
+auth-dir: /root/.cli-proxy-api
+debug: false
+logging-to-file: true
+usage-statistics-enabled: false

@@ -1,0 +1,20 @@
+services:
+  octopus:
+    image: bestrui/octopus:latest
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    ports:
+      - "${PANEL_APP_PORT_HTTP}:8080"
+    environment:
+      OCTOPUS_DATABASE_TYPE: postgres
+      OCTOPUS_DATABASE_PATH: postgresql://${PANEL_DB_USER}:${PANEL_DB_USER_PASSWORD}@${PANEL_DB_HOST}:${PANEL_DB_PORT}/${PANEL_DB_NAME}?sslmode=disable
+    volumes:
+      - ./data:/app/data
+    labels:
+      createdBy: "Apps"
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true

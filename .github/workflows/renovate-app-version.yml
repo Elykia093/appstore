@@ -1,0 +1,286 @@
+name: Update app version in Renovate Branches
+
+on:
+  push:
+    branches: [ 'renovate/*' ]
+  workflow_dispatch:
+    inputs:
+      manual-trigger:
+        description: 'Manually trigger Renovate'
+        default: ''
+
+# 并发控制：不同 renovate 分支允许并发；同一分支的重复触发串行执行
+concurrency:
+  group: merge-renovate-pr-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  update-app-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MERGE_ADMIN_TOKEN != '' && secrets.MERGE_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Check if triggered by self (prevent circular trigger)
+        id: check-circular
+        run: |
+          # 检查最后一个 commit 的 author，如果是自己则跳过
+          last_author=$(git log -1 --format='%an')
+          last_message=$(git log -1 --format='%s')
+          
+          echo "Last commit author: $last_author"
+          echo "Last commit message: $last_message"
+          
+          # 如果是 github-action 自己 commit 的，说明是工作流触发的，跳过避免循环
+          if [[ "$last_author" == "github-action update-app-version" ]] || \
+             [[ "$last_author" == "github-action[bot]" ]] || \
+             [[ "$last_message" == *"[auto-version-bump]"* ]]; then
+            echo "⚠️ Skipping: triggered by own commit (preventing circular trigger)"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Proceeding: triggered by external commit"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure git
+        if: steps.check-circular.outputs.skip != 'true'
+        run: |
+          git config --local user.email "githubaction@githubaction.com"
+          git config --local user.name "github-action update-app-version"
+
+      - name: Get list of updated files by the last commit
+        if: steps.check-circular.outputs.skip != 'true'
+        id: updated-files
+        run: |
+          echo "files=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Run renovate-app-version.sh on updated files
+        if: steps.check-circular.outputs.skip != 'true'
+        id: rename
+        run: |
+          set -e
+          chmod +x .github/workflows/renovate-app-version.sh
+
+          files="${{ steps.updated-files.outputs.files }}"
+          declare -a changed_apps=()
+
+          echo "Updated files: $files"
+
+          for file in $files; do
+            if [[ $file == *"docker-compose.yml"* ]]; then
+              echo "Processing file: $file"
+
+              app_name=$(echo $file | cut -d'/' -f 2)
+              old_version=$(echo $file | cut -d'/' -f 3)
+              echo "App name: $app_name, old version: $old_version"
+
+              # 获取所有服务名
+              services=$(yq '.services | keys | .[]' "$file")
+              service=""
+              image_line=""
+
+              for s in $services; do
+                # 通过awk获取服务下的image行（包含注释）
+                image_line=$(awk "/services:/{flag=0} /^\s*$s:/{flag=1} flag && /^\s*image:/{print; exit}" "$file")
+                echo "Service $s image line: $image_line"
+                if [[ "$image_line" != *"[ignore]"* ]]; then
+                  service="$s"
+                  break
+                else
+                  echo "Skipping service $s due to [ignore]"
+                fi
+              done
+
+              if [[ -z "$service" ]]; then
+                echo "No valid service found in $file, skipping..."
+                continue
+              fi
+
+              # 提取image纯字符串，去除注释和多余空格
+              image=$(echo "$image_line" | sed -E 's/^\s*image:\s*([^ #]+).*/\1/')
+              echo "Selected service: $service"
+              echo "Extracted image: $image"
+
+              if [[ "$image" == *":"* ]]; then
+                new_version=$(cut -d ":" -f2- <<< "$image")
+                trimmed_version=${new_version/#"v"/}
+                echo "Parsed new version: $trimmed_version"
+              else
+                trimmed_version=""
+                echo "No version tag found in image."
+              fi
+
+              changed_apps+=("${app_name}:${old_version}:${trimmed_version}")
+              echo "Calling renovate-app-version.sh with: $app_name, $old_version, $trimmed_version"
+              .github/workflows/renovate-app-version.sh "$app_name" "$old_version" "$trimmed_version"
+            fi
+          done
+
+          echo "All changed apps: ${changed_apps[*]}"
+          echo "apps=$(IFS=, ; echo "${changed_apps[*]}")" >> $GITHUB_OUTPUT
+
+      - name: Commit & Push Changes
+        if: steps.check-circular.outputs.skip != 'true'
+        run: |
+          set -e
+          branch_name="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          IFS=',' read -r -a apps <<< "${{ steps.rename.outputs.apps }}"
+          for item in "${apps[@]}"; do
+            app_name=$(cut -d':' -f1 <<< "$item")
+            old_version=$(cut -d':' -f2 <<< "$item")
+            new_version=$(cut -d':' -f3 <<< "$item")
+
+            if [[ -n "$app_name" && -n "$new_version" ]]; then
+              echo "Staging all changes for apps/$app_name ..."
+              git add -A -- "apps/$app_name"
+
+              if git diff --cached --quiet -- "apps/$app_name"; then
+                echo "apps/$app_name 没有需要提交的改动"
+                continue
+              fi
+
+              git commit -m "[auto-version-bump] 📈将应用 $app_name 的版本从 $old_version 升级到 $new_version" --no-verify
+            fi
+          done
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Discarding leftover working tree changes before push..."
+            git status --short
+            git reset --hard HEAD
+            git clean -fd
+          fi
+
+          git push origin "HEAD:$branch_name" || echo "无内容可推送"
+
+      - name: Rebase to latest main and merge PR
+        if: steps.check-circular.outputs.skip != 'true' && github.ref_name != 'main'
+        env:
+          ADMIN_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' && secrets.MERGE_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          branch_name="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          echo "Current branch: $branch_name"
+
+          # 获取 PR 编号
+          pr_number=$(gh pr list --state open --head "$branch_name" --json number -q '.[0].number')
+          if [ -z "$pr_number" ]; then
+            echo "No PR found for branch $branch_name"
+            exit 0
+          fi
+
+          echo "Found PR #$pr_number, preparing to merge..."
+
+          echo "Resetting working tree before rebase..."
+          git reset --hard HEAD
+          git clean -fd
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Working tree is still dirty before rebase, aborting."
+            git status --short
+            exit 1
+          fi
+
+          # Fetch 最新的 main 分支
+          echo "Fetching latest main branch..."
+          git fetch origin main
+
+          # Rebase 当前分支到最新的 main
+          echo "Rebasing $branch_name onto origin/main..."
+          if ! git rebase origin/main; then
+            echo "Rebase failed, printing status for diagnosis..."
+            git status --short
+            git rebase --abort || true
+            exit 1
+          fi
+
+          # Force push 更新后的分支
+          echo "Force pushing rebased branch..."
+          git push --force-with-lease origin "HEAD:$branch_name"
+
+          # 等待 GitHub 重新计算 mergeable 状态
+          echo "Waiting for GitHub to recalculate mergeable status..."
+          sleep 15
+
+          # 检查 mergeable 状态，最多等待 2 分钟
+          max_attempts=12
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            mergeable=$(gh pr view "$pr_number" --json mergeable -q '.mergeable' 2>/dev/null || echo "UNKNOWN")
+            merge_state_status=$(gh pr view "$pr_number" --json mergeStateStatus -q '.mergeStateStatus' 2>/dev/null || echo "UNKNOWN")
+            echo "Mergeable status: $mergeable, mergeStateStatus: $merge_state_status (attempt $((attempt+1))/$max_attempts)"
+            
+            if [ "$mergeable" = "MERGEABLE" ] && [ "$merge_state_status" != "UNKNOWN" ]; then
+              echo "PR is ready to merge."
+              break
+            fi
+            
+            if [ "$mergeable" = "CONFLICTING" ]; then
+              echo "Warning: PR has conflicts, but proceeding with admin merge..."
+              break
+            fi
+            
+            sleep 10
+            attempt=$((attempt+1))
+          done
+
+          # 合并 PR
+          echo "Merging PR #$pr_number..."
+          head_sha=$(git rev-parse HEAD)
+          merge_flags=(--merge --delete-branch --match-head-commit "$head_sha")
+
+          if [[ -n "${ADMIN_MERGE_TOKEN:-}" ]]; then
+            echo "Using MERGE_ADMIN_TOKEN for administrator merge."
+            merge_flags+=(--admin)
+          else
+            echo "MERGE_ADMIN_TOKEN is not configured; using standard repository token."
+          fi
+
+          merged="false"
+          for merge_attempt in 1 2 3; do
+            if gh pr merge "$pr_number" "${merge_flags[@]}"; then
+              merged="true"
+              break
+            fi
+
+            echo "Merge command failed on attempt $merge_attempt/3. Checking current PR state..."
+            pr_state=$(gh pr view "$pr_number" --json state,mergedAt -q 'if .mergedAt then "MERGED" else .state end' 2>/dev/null || echo "UNKNOWN")
+            echo "Current PR state after failure: $pr_state"
+
+            if [[ "$pr_state" == "MERGED" ]]; then
+              merged="true"
+              break
+            fi
+
+            sleep 10
+          done
+
+          if [[ "$merged" != "true" ]]; then
+            echo "Merge failed after retries."
+            gh pr view "$pr_number" --json url,state,mergeable,mergeStateStatus,statusCheckRollup
+            exit 1
+          fi
+
+          echo "Successfully merged PR #$pr_number!"
+
+      - name: Trigger sync to CNB mirror
+        if: steps.check-circular.outputs.skip != 'true' && github.ref_name != 'main'
+        env:
+          GH_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' && secrets.MERGE_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ -n "${{ secrets.MERGE_ADMIN_TOKEN }}" ]]; then
+            echo "MERGE_ADMIN_TOKEN is configured. The merge to main will trigger sync-to-cnb via push, so manual dispatch is skipped."
+            exit 0
+          fi
+
+          echo "Triggering sync-to-cnb workflow..."
+          gh workflow run sync-to-cnb.yml --ref main
+          echo "Sync workflow triggered successfully!"

@@ -1,0 +1,139 @@
+additionalProperties:
+  formFields:
+    - child:
+        default: ""
+        envKey: PANEL_DB_HOST
+        required: true
+        type: service
+      default: postgresql
+      envKey: PANEL_DB_TYPE
+      labelEn: Database Service
+      labelZh: 数据库服务
+      label:
+        en: Database Service
+        zh: 数据库服务
+      required: true
+      type: apps
+      values:
+        - label: PostgreSQL
+          value: postgresql
+    - default: lsky
+      envKey: PANEL_DB_NAME
+      labelEn: Database Name
+      labelZh: 数据库名
+      label:
+        en: Database Name
+        zh: 数据库名
+      random: true
+      required: true
+      rule: paramCommon
+      type: text
+    - default: lsky
+      envKey: PANEL_DB_USER
+      labelEn: Database User
+      labelZh: 数据库用户
+      label:
+        en: Database User
+        zh: 数据库用户
+      random: true
+      required: true
+      rule: paramCommon
+      type: text
+    - default: lsky
+      envKey: PANEL_DB_USER_PASSWORD
+      labelEn: Database User Password
+      labelZh: 数据库用户密码
+      label:
+        en: Database User Password
+        zh: 数据库用户密码
+      random: true
+      required: true
+      type: password
+    - default: ""
+      envKey: PANEL_REDIS_HOST
+      key: redis
+      labelEn: Redis Service
+      labelZh: Redis 服务
+      required: false
+      type: service
+      label:
+        en: Redis Service
+        zh: Redis 服务
+    - default: ""
+      envKey: PANEL_REDIS_ROOT_PASSWORD
+      labelEn: Redis Password
+      labelZh: Redis 密码
+      required: false
+      type: password
+    - default: 8000
+      envKey: PANEL_APP_PORT_HTTP
+      labelEn: HTTP Port
+      labelZh: HTTP 端口
+      label:
+        en: HTTP Port
+        zh: HTTP 端口
+      required: true
+      rule: paramPort
+      type: number
+    - default: "http://localhost:8000"
+      edit: true
+      envKey: APP_URL
+      labelEn: App URL
+      labelZh: 访问地址
+      label:
+        en: App URL
+        zh: 访问地址
+      required: false
+      type: text
+    - default: "Lsky Pro"
+      edit: true
+      envKey: APP_NAME
+      labelEn: App Name
+      labelZh: 应用名称
+      label:
+        en: App Name
+        zh: 应用名称
+      required: true
+      type: text
+    - default: ""
+      edit: true
+      envKey: APP_LICENSE_KEY
+      labelEn: License Key
+      labelZh: 授权密钥
+      label:
+        en: License Key
+        zh: 授权密钥
+      required: true
+      type: password
+    - default: "admin"
+      edit: true
+      envKey: ADMIN_USERNAME
+      labelEn: Admin Username
+      labelZh: 管理员用户名
+      label:
+        en: Admin Username
+        zh: 管理员用户名
+      required: true
+      rule: paramCommon
+      type: text
+    - default: ""
+      edit: true
+      envKey: ADMIN_EMAIL
+      labelEn: Admin Email
+      labelZh: 管理员邮箱
+      label:
+        en: Admin Email
+        zh: 管理员邮箱
+      required: true
+      type: text
+    - default: ""
+      edit: true
+      envKey: ADMIN_PASSWORD
+      labelEn: Admin Password
+      labelZh: 管理员密码
+      label:
+        en: Admin Password
+        zh: 管理员密码
+      random: true
+      required: true
+      type: password

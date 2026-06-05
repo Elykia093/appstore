@@ -1,0 +1,39 @@
+services:
+  lsky:
+    image: ghcr.io/walrus8364/lsky-pro:latest
+    container_name: ${CONTAINER_NAME}
+    restart: unless-stopped
+    ports:
+      - "${PANEL_APP_PORT_HTTP}:80"
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL}
+      APP_LICENSE_KEY: ${APP_LICENSE_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_CONNECTION: pgsql
+      DB_HOST: ${PANEL_DB_HOST}
+      DB_PORT: ${PANEL_DB_PORT}
+      DB_DATABASE: ${PANEL_DB_NAME}
+      DB_USERNAME: ${PANEL_DB_USER}
+      DB_PASSWORD: ${PANEL_DB_USER_PASSWORD}
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      REDIS_HOST: ${PANEL_REDIS_HOST}
+      REDIS_PASSWORD: ${PANEL_REDIS_ROOT_PASSWORD}
+      REDIS_PORT: 6379
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/var/www/html
+    labels:
+      createdBy: "Apps"
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true

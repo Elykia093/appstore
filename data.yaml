@@ -1,0 +1,40 @@
+name: 1Panel Private App Store
+title: 精简私有 1Panel 应用商店
+additionalProperties:
+  tags:
+    - key: AI
+      name: AI
+      sort: 5
+      locales:
+        en: AI
+        zh: AI
+        zh-hant: AI
+    - key: Website
+      name: 建站
+      sort: 10
+      locales:
+        en: Website
+        zh: 建站
+        zh-hant: 網站
+    - key: Tool
+      name: 实用工具
+      sort: 50
+      locales:
+        en: Tool
+        zh: 实用工具
+        zh-hant: 實用工具
+    - key: Storage
+      name: 云存储
+      sort: 60
+      locales:
+        en: Cloud Storage
+        zh: 云存储
+        zh-hant: 雲存儲
+    - key: Media
+      name: 多媒体
+      sort: 130
+      locales:
+        en: Media
+        zh: 多媒体
+        zh-hant: 多媒體
+  version: v1.0.0

@@ -1,0 +1,27 @@
+name: CPA
+tags:
+  - AI / 大模型
+  - 代理
+title: CLIProxyAPI，面向 AI CLI 的统一代理服务
+description: CPA 基于 CLIProxyAPI，提供 Claude Code、Codex、Gemini CLI 等 AI CLI 的统一代理与管理能力，并使用 PostgreSQL 持久化配置和认证数据。
+additionalProperties:
+  key: cpa
+  name: CPA
+  tags:
+    - AI
+    - Tool
+  shortDescZh: AI CLI 统一代理服务（PostgreSQL）
+  shortDescEn: Unified AI CLI proxy service with PostgreSQL storage
+  type: website
+  crossVersionUpdate: true
+  limit: 0
+  website: https://help.router-for.me/
+  github: https://github.com/router-for-me/CLIProxyAPI
+  document: https://help.router-for.me/configuration/storage/pgsql.html
+  description:
+    en: CPA is a CLIProxyAPI-based proxy service for AI CLI tools. It can persist configuration and authentication data in PostgreSQL.
+    zh: CPA 基于 CLIProxyAPI，为 AI CLI 工具提供统一代理能力，并可通过 PostgreSQL 持久化配置与认证数据。
+  architectures:
+    - amd64
+    - arm64
+    - armv7
