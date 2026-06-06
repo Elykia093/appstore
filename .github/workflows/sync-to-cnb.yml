@@ -1,6 +1,12 @@
 name: Sync commits to CNB (optional)
 
 on:
+  schedule:
+    - cron: "0 0 * * *"     # 每天凌晨 0 点强制同步（兜底）
+    - cron: "0 */6 * * *"   # 每 6 小时检查一次
+  push:
+    branches:
+      - main
   workflow_call:            # 允许被其他工作流调用
   workflow_dispatch:
     inputs:
@@ -37,6 +43,13 @@ jobs:
       - name: Determine sync mode
         id: mode
         run: |
+          # 每天凌晨的定时任务强制同步
+          if [[ "${{ github.event.schedule }}" == "0 0 * * *" ]]; then
+            echo "Daily scheduled sync - forcing sync"
+            echo "force=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # 手动触发且指定强制同步
           if [[ "${{ github.event.inputs.force_sync }}" == "true" ]]; then
             echo "Manual force sync requested"
