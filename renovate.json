@@ -6,53 +6,18 @@
   "prCreation": "immediate",
   "prConcurrentLimit": 1,
   "branchConcurrentLimit": 1,
-  "hostRules": [
-    {
-      "hostType": "docker",
-      "matchHost": "codeberg.org",
-      "registryUrls": [
-        "https://codeberg.org"
-      ]
-    },
-    {
-      "hostType": "docker",
-      "matchHost": "code.forgejo.org",
-      "registryUrls": [
-        "https://code.forgejo.org"
-      ]
-    }
-  ],
+  "enabledManagers": ["docker-compose"],
+  "includePaths": ["apps/**/docker-compose.yml"],
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
-      "enabled": false
-    },
-    {
-      "matchDatasources": ["docker"],
-      "matchFileNames": [
-        "apps/meting-api/*/docker-compose.yml"
-      ],
-      "enabled": false
-    },
-    {
-      "matchDatasources": ["docker"],
-      "matchFileNames": [
-        "apps/chatnio/*/docker-compose.yml"
-      ],
-      "enabled": false
-    },
-    {
+      "description": "Track only 1Panel app Docker images and pin digests so floating latest tags produce update PRs.",
+      "matchManagers": ["docker-compose"],
       "matchDatasources": ["docker"],
       "matchFileNames": [
         "apps/*/*/docker-compose.yml"
       ],
-      "versioning": "semver"
-    },
-    {
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/lukegus/termix"],
-      "versionCompatibility": "^release-(?<version>.*)$",
-      "versioning": "semver"
+      "pinDigests": true,
+      "versioning": "docker"
     }
   ]
 }

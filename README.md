@@ -39,6 +39,18 @@
 
 ---
 
+## 自动更新检测
+
+本仓库使用 Renovate 检测 `apps/*/*/docker-compose.yml` 中的 Docker 镜像：
+
+- Renovate 只扫描应用模板里的 Docker Compose 文件，不处理旧仓库残留应用或 GitHub Actions 依赖。
+- 对 `latest` 这类浮动标签启用 digest pin，镜像内容变化时会生成 digest 更新 PR。
+- 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录。
+- 对 `latest` 标签，只更新 compose 中的镜像摘要，不自动把 1Panel 版本目录重命名为 `latest`。
+- Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。
+
+---
+
 ## ✅ 应用收录标准
 
 本仓库优先收录以下类型的容器应用：
@@ -64,18 +76,14 @@
 
 以下是自动同步 App 应用至 1Panel 的脚本，适用于开发或部署用户。
 
-### 📥 国内同步脚本：
-
-镜像仓库地址：请替换为你的仓库地址
-
-使用github action保持同步更新。
+### 全量同步脚本
 
 ```bash
 #!/bin/bash
 set -euo pipefail
 IFS=$'\n\t'
 
-GIT_REPO="https://example.com/your/appstore"
+GIT_REPO="https://github.com/Elykia093/appstore.git"
 TMP_DIR="/opt/1panel/resource/apps/local/appstore-localApps"
 LOCAL_APPS_DIR="/opt/1panel/resource/apps/local"
 
@@ -110,12 +118,6 @@ done
 echo "✅ Sync completed."
 ```
 
-🌍 国外环境请替换为 GitHub 仓库：
-
-```bash
-GIT_REPO="https://github.com/your-name/appstore"
-```
-
 ------
 
 ## 😎 单应用同步
@@ -139,7 +141,7 @@ APPS_TO_INSTALL=(
 )
 
 # ========= 常量 =========
-GIT_REPO="https://example.com/your/appstore"
+GIT_REPO="https://github.com/Elykia093/appstore.git"
 TMP_DIR="/opt/1panel/resource/apps/local/appstore-localApps"
 LOCAL_APPS_DIR="/opt/1panel/resource/apps/local"
 
@@ -234,9 +236,9 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 ### 3️⃣ 自动替换逻辑
 
-> 该部分无需配置，仅供说明脚本的绿色性质，替换脚本开源于非docker.io镜像中如**MoonTV**仓库，有需要请自行查看
+`mirror.sh` 只读取 `/opt/mirror-config.env`。没有该配置文件时会直接跳过镜像替换，不依赖仓库根目录 `.env`。
 
-在克隆仓库后，按照本仓库的脚本，会在应用目录下执行 `mirror.sh`进行镜像源替换。
+在克隆仓库后，按照本仓库的脚本，会在应用目录下执行 `mirror.sh` 进行镜像源替换。
 
 这样即使镜像源被墙，也能快速替换为你配置的加速地址。
 
@@ -246,19 +248,18 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 ## 📮 问题反馈
 
-如发现配置错误或希望新增应用，欢迎在 Issues 区提交反馈：
+如发现配置错误或希望调整应用，欢迎在 Issues 区提交反馈：
 
-- 🛠 [本仓库 Issues](https://github.com/willow-god/appstore/issues)
+- 🛠 [本仓库 Issues](https://github.com/Elykia093/appstore/issues)
 
 > ⚠️ 本项目仅对仓库中提供的应用内容提供支持。1Panel 本体问题请前往 [1Panel 主项目](https://github.com/1Panel-dev/1Panel/issues) 提问。
 
 ------
 
-## ✨ 项目作者
+## ✨ 项目维护
 
-- 💻 清羽飞扬（willow-god）
-- 🌐 [个人主页](https://www.liushen.fun/)
-- 📘 [技术博客](https://blog.liushen.fun/)
+- 维护者：Elykia093
+- 仓库地址：https://github.com/Elykia093/appstore
 
 ------
 

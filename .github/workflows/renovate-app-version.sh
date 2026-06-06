@@ -1,37 +1,43 @@
 #!/bin/bash
-# This script copies the version from docker-compose.yml to config.json.
+set -euo pipefail
 
-# app_name=$1
-# old_version=$2
+app_name="${1:?app name is required}"
+old_version="${2:?old version is required}"
+new_version="${3:-}"
 
-# # find all docker-compose files under apps/$app_name (there should be only one)
-# docker_compose_files=$(find apps/$app_name/$old_version -name docker-compose.yml)
+if [[ -z "$new_version" ]]; then
+    echo "No parsed image version for $app_name, skipping directory rename."
+    exit 0
+fi
 
-# for docker_compose_file in $docker_compose_files
-# do
-# 	# Assuming that the app version will be from the first docker image
-# 	first_service=$(yq '.services | keys | .[0]' $docker_compose_file)
+# Renovate may pin Docker images as tag@sha256:digest. 1Panel version
+# directories should follow the tag only, while digest-only changes keep the
+# existing directory name.
+new_version="${new_version%%@*}"
+trimmed_version="${new_version#v}"
 
-# 	image=$(yq .services.$first_service.image $docker_compose_file)
+if [[ -z "$trimmed_version" || "$trimmed_version" == "$old_version" ]]; then
+    echo "Version directory already matches $app_name:$old_version, skipping rename."
+    exit 0
+fi
 
-# 	# Only apply changes if the format is <image>:<version>
-# 	if [[ "$image" == *":"* ]]; then
-# 	  version=$(cut -d ":" -f2- <<< "$image")
+if [[ "$trimmed_version" == "latest" ]]; then
+    echo "$app_name uses the floating latest tag; keeping the existing 1Panel version directory."
+    exit 0
+fi
 
-# 	  # Trim the "v" prefix
-# 	  trimmed_version=${version/#"v"}
+source_dir="apps/$app_name/$old_version"
+target_dir="apps/$app_name/$trimmed_version"
 
-#       mv apps/$app_name/$old_version apps/$app_name/$trimmed_version
-#     fi
-# done
+if [[ ! -d "$source_dir" ]]; then
+    echo "Source version directory does not exist: $source_dir"
+    exit 1
+fi
 
-app_name=$1
-old_version=$2
-new_version=$3
+if [[ -e "$target_dir" ]]; then
+    echo "Target version directory already exists: $target_dir"
+    exit 1
+fi
 
-# Trim the "v" prefix if present
-trimmed_version=${new_version/#"v"}
-
-echo "Renaming apps/$app_name/$old_version to apps/$app_name/$trimmed_version"
-mv "apps/$app_name/$old_version" "apps/$app_name/$trimmed_version"
-
+echo "Renaming $source_dir to $target_dir"
+mv "$source_dir" "$target_dir"

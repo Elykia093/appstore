@@ -82,36 +82,26 @@ jobs:
               old_version=$(echo $file | cut -d'/' -f 3)
               echo "App name: $app_name, old version: $old_version"
 
-              # 获取所有服务名
-              services=$(yq '.services | keys | .[]' "$file")
-              service=""
+              # 提取第一个未标记 [ignore] 的 image 行，避免依赖 runner 预装解析工具。
               image_line=""
+              image_line=$(awk '
+                /^[[:space:]]*image:/ && $0 !~ /\[ignore\]/ { print; exit }
+              ' "$file")
 
-              for s in $services; do
-                # 通过awk获取服务下的image行（包含注释）
-                image_line=$(awk "/services:/{flag=0} /^\s*$s:/{flag=1} flag && /^\s*image:/{print; exit}" "$file")
-                echo "Service $s image line: $image_line"
-                if [[ "$image_line" != *"[ignore]"* ]]; then
-                  service="$s"
-                  break
-                else
-                  echo "Skipping service $s due to [ignore]"
-                fi
-              done
-
-              if [[ -z "$service" ]]; then
-                echo "No valid service found in $file, skipping..."
+              if [[ -z "$image_line" ]]; then
+                echo "No valid image line found in $file, skipping..."
                 continue
               fi
 
               # 提取image纯字符串，去除注释和多余空格
-              image=$(echo "$image_line" | sed -E 's/^\s*image:\s*([^ #]+).*/\1/')
-              echo "Selected service: $service"
+              image=$(echo "$image_line" | sed -E 's/^[[:space:]]*image:[[:space:]]*([^ #]+).*/\1/')
+              echo "Selected image line: $image_line"
               echo "Extracted image: $image"
 
-              if [[ "$image" == *":"* ]]; then
-                new_version=$(cut -d ":" -f2- <<< "$image")
-                trimmed_version=${new_version/#"v"/}
+              image_without_digest="${image%%@*}"
+              if [[ "$image_without_digest" == *":"* ]]; then
+                new_version="${image_without_digest##*:}"
+                trimmed_version="${new_version#v}"
                 echo "Parsed new version: $trimmed_version"
               else
                 trimmed_version=""
@@ -147,7 +137,11 @@ jobs:
                 continue
               fi
 
-              git commit -m "[auto-version-bump] 📈将应用 $app_name 的版本从 $old_version 升级到 $new_version" --no-verify
+              if [[ "$new_version" == "latest" || "$new_version" == "$old_version" ]]; then
+                git commit -m "[auto-version-bump] 📈更新应用 $app_name 的镜像标签或摘要" --no-verify
+              else
+                git commit -m "[auto-version-bump] 📈将应用 $app_name 的版本从 $old_version 升级到 $new_version" --no-verify
+              fi
             fi
           done
 
