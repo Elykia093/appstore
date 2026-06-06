@@ -1,12 +1,6 @@
-name: Sync commits to CNB (force)
+name: Sync commits to CNB (optional)
 
 on:
-  schedule:
-    - cron: "0 0 * * *"     # 每天凌晨 0 点强制同步（兜底）
-    - cron: "0 */6 * * *"   # 每 6 小时检查一次
-  push:
-    branches:
-      - main
   workflow_call:            # 允许被其他工作流调用
   workflow_dispatch:
     inputs:
@@ -43,13 +37,6 @@ jobs:
       - name: Determine sync mode
         id: mode
         run: |
-          # 每天凌晨的定时任务强制同步
-          if [[ "${{ github.event.schedule }}" == "0 0 * * *" ]]; then
-            echo "Daily scheduled sync - forcing sync"
-            echo "force=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
           # 手动触发且指定强制同步
           if [[ "${{ github.event.inputs.force_sync }}" == "true" ]]; then
             echo "Manual force sync requested"
@@ -97,12 +84,28 @@ jobs:
             echo "No other open PRs found. Proceeding with CNB sync."
           fi
 
-      - name: Sync to CNB
-        id: sync
-        if: (steps.mode.outputs.force == 'true' || steps.check.outputs.skip == 'false') && steps.pr-check.outputs.skip != 'true'
+      - name: Check CNB configuration
+        id: cnb-config
         env:
           CNB_USERNAME: ${{ secrets.CNB_USERNAME }}
           CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+          CNB_REPOSITORY: ${{ vars.CNB_REPOSITORY }}
+        run: |
+          if [[ -z "$CNB_USERNAME" || -z "$CNB_TOKEN" || -z "$CNB_REPOSITORY" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "CNB sync is not configured; set CNB_USERNAME, CNB_TOKEN and repository variable CNB_REPOSITORY to enable it."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "CNB sync configuration found."
+          fi
+
+      - name: Sync to CNB
+        id: sync
+        if: steps.cnb-config.outputs.configured == 'true' && (steps.mode.outputs.force == 'true' || steps.check.outputs.skip == 'false') && steps.pr-check.outputs.skip != 'true'
+        env:
+          CNB_USERNAME: ${{ secrets.CNB_USERNAME }}
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+          CNB_REPOSITORY: ${{ vars.CNB_REPOSITORY }}
         run: |
           echo "Syncing to CNB mirror..."
           rm -rf .git
@@ -112,7 +115,7 @@ jobs:
           git add .
           git commit -m "Sync commit ==> [$(date +"%Y-%m-%d %H:%M:%S")]"
           git branch -M main
-          git remote add origin "https://${{ secrets.CNB_USERNAME }}:${{ secrets.CNB_TOKEN }}@cnb.cool/liiiu/appstore.git"
+          git remote add origin "https://${CNB_USERNAME}:${CNB_TOKEN}@cnb.cool/${CNB_REPOSITORY}.git"
 
           pushed=false
           for attempt in 1 2 3; do
@@ -136,6 +139,8 @@ jobs:
         run: |
           if [[ "${{ steps.sync.outputs.synced }}" == "true" ]]; then
             echo "✅ Successfully synced to CNB mirror"
+          elif [[ "${{ steps.cnb-config.outputs.configured }}" != "true" ]]; then
+            echo "⏭️ Skipped sync because CNB is not configured"
           elif [[ "${{ steps.pr-check.outputs.skip }}" == "true" ]]; then
             echo "⏭️ Skipped sync because other PRs are still open"
           else
