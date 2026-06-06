@@ -6,7 +6,7 @@
 
 | 1Panel 应用 | 对应上游项目 | 存储口径 |
 | --- | --- | --- |
-| Anheyu Blog Pro (`anheyu-blog-pro`) | [anzhiyu-c/anheyu-app](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
+| Anheyu (`anheyu`) | [anzhiyu-c/anheyu-app](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
 | CPA / CLIProxyAPI (`cpa`) | [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
 | Octopus (`octopus`) | [bestruirui/octopus](https://github.com/bestruirui/octopus) | PostgreSQL |
 | Lsky Pro (`lsky`) | [lsky-org/lsky-pro](https://github.com/lsky-org/lsky-pro) | PostgreSQL，可选 Redis |
@@ -22,7 +22,7 @@
 
 | 应用 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- |
-| Anheyu Blog Pro | `anheyu/pro:latest` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
+| Anheyu | `anheyu/pro:latest` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
 | CPA / CLIProxyAPI | `eceasy/cli-proxy-api:latest` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Octopus | `bestrui/octopus:latest` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
 | Lsky Pro | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
@@ -129,7 +129,7 @@ IFS=$'\n\t'
 
 # ========= 配置：要安装的应用列表 =========
 APPS_TO_INSTALL=(
-    "anheyu-blog-pro"
+    "anheyu"
     "cpa"
     "octopus"
     "lsky"
