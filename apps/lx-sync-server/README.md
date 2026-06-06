@@ -1,6 +1,8 @@
 # LX Sync Server
 
-基于 `ghcr.io/xcq0607/lxserver` 的 LX Music 数据同步服务端增强版。
+基于 [XCQ0607/lxserver](https://github.com/XCQ0607/lxserver) 的 LX Music 数据同步服务端增强版。
+
+本模板使用 `ghcr.io/xcq0607/lxserver:latest` 镜像。
 
 该项目主要使用本地目录持久化数据和日志；本模板按当前编排挂载 `./data:/server/data` 与 `./logs:/server/logs`。
 

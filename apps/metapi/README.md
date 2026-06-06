@@ -4,6 +4,8 @@
 
 Metapi 适合把 New API / One API / OneHub / DoneHub / Veloera / AnyRouter / Sub2API 等上游统一到一个入口，提供自动模型发现、智能路由、成本优先选路和本地数据目录部署。
 
+对应项目：[cita-777/metapi](https://github.com/cita-777/metapi)
+
 ## 部署说明
 
 - 服务端口：`4000`
