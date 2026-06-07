@@ -28,7 +28,7 @@
 | Lsky Pro | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | Metapi | `1467078763/metapi:latest` | `4000:4000` | `./data:/app/data` |
 | AxonHub | `looplj/axonhub:latest` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
-| LX Sync Server | `ghcr.io/xcq0607/lxserver:latest` | `9527:9527` | `./data`、`./logs`，WebDAV 参数由环境变量注入 |
+| LX Sync Server | `ghcr.io/xcq0607/lxserver:latest` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
 

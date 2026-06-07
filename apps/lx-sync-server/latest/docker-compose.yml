@@ -6,6 +6,11 @@ services:
     ports:
       - "${PANEL_APP_PORT_HTTP}:9527"
     environment:
+      NODE_ENV: production
+      DATA_PATH: /server/data
+      LOG_PATH: /server/logs
+      CACHE_PATH: /server/cache
+      MUSIC_PATH: /server/music
       FRONTEND_PASSWORD: ${FRONTEND_PASSWORD}
       WEBDAV_URL: ${WEBDAV_URL}
       WEBDAV_USERNAME: ${WEBDAV_USERNAME}
@@ -15,6 +20,8 @@ services:
     volumes:
       - ./data:/server/data
       - ./logs:/server/logs
+      - ./cache:/server/cache
+      - ./music:/server/music
     labels:
       createdBy: "Apps"
     networks:
