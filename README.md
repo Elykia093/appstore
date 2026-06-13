@@ -48,7 +48,7 @@
 - 对 `latest` 这类浮动标签启用 digest pin，镜像内容变化时会生成 digest 更新 PR。
 - 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录。
 - 对 `latest` 标签，只更新 compose 中的镜像摘要，不自动把 1Panel 版本目录重命名为 `latest`。
-- 如果需要 Renovate 创建的 `renovate/*` 分支自动触发 `renovate-app-version.yml`，需要配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`；仅使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 产生的后续 workflow 触发。
+- 全自动更新链路必须配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`；仅使用默认 `GITHUB_TOKEN` 时，Renovate 可能无法创建 PR，且 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`。因此 workflow 会在缺少这两个 secret 时直接失败，避免“Actions 成功但没有更新”的假象。
 - Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。
 
 ---
