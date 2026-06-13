@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "gitIgnoredAuthors": ["githubaction@githubaction.com"],
-  "rebaseWhen": "never",
+  "rebaseWhen": "auto",
   "prCreation": "immediate",
   "prConcurrentLimit": 1,
   "branchConcurrentLimit": 1,
