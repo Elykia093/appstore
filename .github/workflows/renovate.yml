@@ -42,9 +42,9 @@ jobs:
           if [[ "$HAS_RENOVATE_TOKEN" == "true" || "$HAS_MERGE_ADMIN_TOKEN" == "true" ]]; then
             echo "Renovate will use a token that can trigger downstream workflows."
           else
-            echo "::warning::Renovate is falling back to GITHUB_TOKEN. This matches the upstream willow-god/appstore workflow, but repository Actions settings must allow GitHub Actions to create PRs. Configure RENOVATE_TOKEN or MERGE_ADMIN_TOKEN if renovate/* branch pushes must trigger downstream workflows automatically."
+            echo "::notice::Renovate is using GITHUB_TOKEN. This can create PRs when repository Actions permissions allow it, but GitHub suppresses workflows triggered by GITHUB_TOKEN branch pushes. Configure RENOVATE_TOKEN or MERGE_ADMIN_TOKEN if renovate/* branch pushes must trigger downstream workflows automatically."
           fi
       - name: Run Renovate
-        uses: renovatebot/github-action@v43.0.7
+        uses: renovatebot/github-action@v46.1.15
         with:
           token: ${{ secrets.RENOVATE_TOKEN || secrets.MERGE_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
