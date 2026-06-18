@@ -1,6 +1,6 @@
 services:
   octopus:
-    image: bestrui/octopus:latest
+    image: bestrui/octopus:latest@sha256:26025ed4af3b7ea2ee40b234cabc381a662ee38eb0cb443a716559fec4f99603
     container_name: ${CONTAINER_NAME}
     restart: always
     ports:
