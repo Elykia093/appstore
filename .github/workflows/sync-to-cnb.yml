@@ -18,6 +18,10 @@ on:
         description: 'Force sync without checking for new commits'
         required: false
         default: 'false'
+      require_cnb_config:
+        description: 'Fail the run when CNB sync configuration is missing'
+        required: false
+        default: 'false'
 
 concurrency:
   group: sync-to-cnb
@@ -104,11 +108,46 @@ jobs:
           CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
           CNB_REPOSITORY: ${{ vars.CNB_REPOSITORY }}
         run: |
-          if [[ -z "$CNB_USERNAME" || -z "$CNB_TOKEN" || -z "$CNB_REPOSITORY" ]]; then
+          missing=()
+
+          if [[ -z "$CNB_USERNAME" ]]; then
+            missing+=("CNB_USERNAME secret")
+          fi
+
+          if [[ -z "$CNB_TOKEN" ]]; then
+            missing+=("CNB_TOKEN secret")
+          fi
+
+          if [[ -z "$CNB_REPOSITORY" ]]; then
+            missing+=("CNB_REPOSITORY repository variable")
+          fi
+
+          if [[ "${#missing[@]}" -gt 0 ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "CNB sync is not configured; set CNB_USERNAME, CNB_TOKEN and repository variable CNB_REPOSITORY to enable it."
+            {
+              echo "### CNB sync skipped"
+              echo ""
+              echo "Missing configuration:"
+              for item in "${missing[@]}"; do
+                echo "- $item"
+              done
+              echo ""
+              echo "Set these values in repository Settings before expecting CNB mirror updates."
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            echo "CNB sync is not configured; missing: ${missing[*]}."
+
+            if [[ "${{ github.event.inputs.require_cnb_config }}" == "true" ]]; then
+              echo "require_cnb_config=true, failing because CNB sync configuration is incomplete."
+              exit 1
+            fi
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### CNB sync configuration found"
+              echo ""
+              echo "CNB mirror sync is enabled for this run."
+            } >> "$GITHUB_STEP_SUMMARY"
             echo "CNB sync configuration found."
           fi
 
@@ -153,7 +192,7 @@ jobs:
           if [[ "${{ steps.sync.outputs.synced }}" == "true" ]]; then
             echo "✅ Successfully synced to CNB mirror"
           elif [[ "${{ steps.cnb-config.outputs.configured }}" != "true" ]]; then
-            echo "⏭️ Skipped sync because CNB is not configured"
+            echo "⏭️ Skipped sync because CNB is not configured. Check the job summary for the missing setting names."
           elif [[ "${{ steps.pr-check.outputs.skip }}" == "true" ]]; then
             echo "⏭️ Skipped sync because other PRs are still open"
           else

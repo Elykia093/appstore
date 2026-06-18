@@ -53,6 +53,25 @@
 
 ---
 
+## CNB 镜像同步配置
+
+`sync-to-cnb.yml` 不会保存真实凭据。要启用 CNB 镜像同步，需要在 GitHub 仓库配置：
+
+| 类型 | 名称 | 说明 |
+| --- | --- | --- |
+| Secret | `CNB_USERNAME` | CNB 登录用户名 |
+| Secret | `CNB_TOKEN` | CNB 访问令牌 |
+| Variable | `CNB_REPOSITORY` | CNB 仓库路径，不带 `.git`，例如 `your-namespace/appstore` |
+
+配置后可以在 Actions 手动运行 `sync-to-cnb.yml`：
+
+- `force_sync=true`：不检查最近 6 小时提交，直接尝试同步。
+- `require_cnb_config=true`：缺少 CNB 配置时让 workflow 失败，适合用来确认配置已经生效。
+
+如果未配置完整，workflow 会在 Job Summary 里列出缺少的配置名，并跳过 CNB 推送；GitHub 主仓库仍是当前源仓库。
+
+---
+
 ## ✅ 应用收录标准
 
 本仓库优先收录以下类型的容器应用：
