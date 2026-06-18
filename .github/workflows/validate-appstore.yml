@@ -1,0 +1,49 @@
+name: Validate App Store
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/**"
+      - "data.yaml"
+      - "README.md"
+      - "renovate.json"
+      - "scripts/validate-appstore.py"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "apps/**"
+      - "data.yaml"
+      - "README.md"
+      - "renovate.json"
+      - "scripts/validate-appstore.py"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install validation dependencies
+        run: python -m pip install --disable-pip-version-check PyYAML
+
+      - name: Validate app store metadata
+        run: python scripts/validate-appstore.py
+
+      - name: Validate Renovate version helper syntax
+        run: bash -n .github/workflows/renovate-app-version.sh
+
+      - name: Check whitespace errors
+        run: git diff --check
