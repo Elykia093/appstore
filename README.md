@@ -47,7 +47,7 @@
 - Renovate 会在每日定时、手动触发，以及 `main` 分支中应用 compose / Renovate 配置变更时运行。
 - 对 `latest` 这类浮动标签启用 digest pin，镜像内容变化时会生成 digest 更新 PR。
 - 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录。
-- 对 `latest` 标签，只更新 compose 中的镜像摘要，不自动把 1Panel 版本目录重命名为 `latest`。
+- 对 `latest@sha256` 这类镜像，Renovate 更新 compose 中的摘要；如果版本目录还不是 `latest`，`renovate-app-version.yml` 会同步重命名为 `latest`，已是 `latest` 时只提交摘要变更。
 - 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
 - Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。
 

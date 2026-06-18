@@ -73,6 +73,16 @@ additionalProperties:
       random: true
       required: true
       type: password
+    - default: "5432"
+      edit: true
+      envKey: PANEL_DB_PORT
+      labelEn: Database Port
+      labelZh: 数据库端口
+      label:
+        en: Database Port
+        zh: 数据库端口
+      required: true
+      type: text
     - default: ""
       envKey: PANEL_REDIS_HOST
       key: redis
