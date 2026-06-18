@@ -11,18 +11,13 @@ if [[ -z "$new_version" ]]; then
 fi
 
 # Renovate may pin Docker images as tag@sha256:digest. 1Panel version
-# directories should follow the tag only, while digest-only changes keep the
-# existing directory name.
+# directories should follow the tag only; floating latest images should use
+# the latest directory too.
 new_version="${new_version%%@*}"
 trimmed_version="${new_version#v}"
 
 if [[ -z "$trimmed_version" || "$trimmed_version" == "$old_version" ]]; then
     echo "Version directory already matches $app_name:$old_version, skipping rename."
-    exit 0
-fi
-
-if [[ "$trimmed_version" == "latest" ]]; then
-    echo "$app_name uses the floating latest tag; keeping the existing 1Panel version directory."
     exit 0
 fi
 
