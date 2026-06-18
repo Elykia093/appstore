@@ -1,6 +1,6 @@
 services:
   lsky:
-    image: ghcr.io/walrus8364/lsky-pro:latest
+    image: ghcr.io/walrus8364/lsky-pro:latest@sha256:b074655a539c4dedc022ea70a40bd51225bfbcf09865467db8f5a444ff870f21
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     ports:

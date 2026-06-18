@@ -1,6 +1,6 @@
 services:
   metapi:
-    image: 1467078763/metapi:latest
+    image: 1467078763/metapi:latest@sha256:d29e74b18ce0734555c2088f1f6638e301a7fc01873ff979961ff8a1ac618da8
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     ports:
