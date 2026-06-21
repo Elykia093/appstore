@@ -28,6 +28,7 @@ EXPECTED_APPS = {
     "octopus",
 }
 
+FLOATING_IMAGE_TAG_APPS = {"lsky"}
 ALLOWED_IMPLICIT_ENV = {"CONTAINER_NAME"}
 COMPOSE_VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(?::?[-+?]).*)?\}")
 
@@ -112,6 +113,20 @@ def image_base(image: str) -> str:
     return image.split("@", 1)[0]
 
 
+def image_tag(image: str) -> str | None:
+    base = image_base(image)
+    name_part = base.rsplit("/", 1)[-1]
+    if ":" not in name_part:
+        return None
+    return name_part.rsplit(":", 1)[1]
+
+
+def normalize_version(value: str | None) -> str:
+    if not value:
+        return ""
+    return value[1:] if value.startswith("v") else value
+
+
 def validate_all_yaml(validator: Validator) -> dict[Path, Any]:
     loaded: dict[Path, Any] = {}
     for path in sorted(ROOT.rglob("*.yml")) + sorted(ROOT.rglob("*.yaml")):
@@ -152,10 +167,7 @@ def validate_apps(loaded: dict[Path, Any], root_tags: set[str], validator: Valid
     all_images: list[str] = []
     for app in sorted(EXPECTED_APPS):
         app_dir = APPS_DIR / app
-        latest_dir = app_dir / "latest"
         root_data_path = app_dir / "data.yml"
-        version_data_path = latest_dir / "data.yml"
-        compose_path = latest_dir / "docker-compose.yml"
 
         for required in (root_data_path, app_dir / "README.md", app_dir / "logo.png"):
             validator.require(required.exists(), f"{rel(required)} is missing")
@@ -169,9 +181,17 @@ def validate_apps(loaded: dict[Path, Any], root_tags: set[str], validator: Valid
             if path.is_dir() and path.name != "__pycache__"
         )
         validator.require(
-            version_dirs == ["latest"],
-            f"{app} must have exactly one version directory named latest, got {version_dirs}",
+            len(version_dirs) == 1 and version_dirs[0] != "latest",
+            f"{app} must have exactly one real version directory instead of latest, got {version_dirs}",
         )
+
+        if not version_dirs:
+            continue
+
+        app_version = version_dirs[0]
+        version_dir = app_dir / app_version
+        version_data_path = version_dir / "data.yml"
+        compose_path = version_dir / "docker-compose.yml"
 
         for required in (version_data_path, compose_path):
             validator.require(required.exists(), f"{rel(required)} is missing")
@@ -222,6 +242,18 @@ def validate_apps(loaded: dict[Path, Any], root_tags: set[str], validator: Valid
                 ":" in image_base(image),
                 f"{rel(compose_path)} image must include an explicit tag before digest: {image}",
             )
+
+            tag = image_tag(image)
+            if app in FLOATING_IMAGE_TAG_APPS:
+                validator.require(
+                    tag == "latest",
+                    f"{rel(compose_path)} image tag must stay latest because the mirror has no version tags: {image}",
+                )
+            else:
+                validator.require(
+                    normalize_version(tag) == app_version,
+                    f"{rel(compose_path)} image tag must match version directory {app_version}: {image}",
+                )
 
             base = image_base(image)
             validator.require(

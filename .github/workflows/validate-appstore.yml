@@ -10,6 +10,7 @@ on:
       - "README.md"
       - "renovate.json"
       - "scripts/validate-appstore.py"
+      - "scripts/resolve-app-version.py"
       - ".github/workflows/**"
   pull_request:
     paths:
@@ -18,6 +19,7 @@ on:
       - "README.md"
       - "renovate.json"
       - "scripts/validate-appstore.py"
+      - "scripts/resolve-app-version.py"
       - ".github/workflows/**"
   workflow_dispatch:
 
@@ -41,6 +43,9 @@ jobs:
 
       - name: Validate app store metadata
         run: python scripts/validate-appstore.py
+
+      - name: Compile validation helpers
+        run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py
 
       - name: Validate Renovate version helper syntax
         run: bash -n .github/workflows/renovate-app-version.sh

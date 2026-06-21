@@ -10,9 +10,9 @@ if [[ -z "$new_version" ]]; then
     exit 0
 fi
 
-# Renovate may pin Docker images as tag@sha256:digest. 1Panel version
-# directories should follow the tag only; floating latest images should use
-# the latest directory too.
+# Renovate passes a resolved 1Panel app version. For versioned images this is
+# derived from the image tag; for floating latest images it comes from the
+# configured upstream GitHub release.
 new_version="${new_version%%@*}"
 trimmed_version="${new_version#v}"
 

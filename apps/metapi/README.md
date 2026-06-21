@@ -10,7 +10,7 @@ Metapi 适合把 New API / One API / OneHub / DoneHub / Veloera / AnyRouter / Su
 
 - 服务端口：`4000`
 - 数据目录：`./data`
-- 镜像：`1467078763/metapi:latest`
+- 镜像：`1467078763/metapi:v1.3.0`
 - 管理员令牌：`AUTH_TOKEN`
 - 代理令牌：`PROXY_TOKEN`
 
@@ -24,7 +24,7 @@ docker run -d --name metapi \
   -e TZ=Asia/Shanghai \
   -v ./data:/app/data \
   --restart unless-stopped \
-  1467078763/metapi:latest
+  1467078763/metapi:v1.3.0
 ```
 
 启动后访问 `http://localhost:4000`，使用 `AUTH_TOKEN` 登录后台。

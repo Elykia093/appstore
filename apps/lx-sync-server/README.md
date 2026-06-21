@@ -2,7 +2,7 @@
 
 基于 [XCQ0607/lxserver](https://github.com/XCQ0607/lxserver) 的 LX Music 数据同步服务端增强版。
 
-本模板使用 `ghcr.io/xcq0607/lxserver:latest` 镜像。
+本模板使用 `ghcr.io/xcq0607/lxserver:v1.9.4` 镜像。
 
 该项目主要使用本地目录持久化数据、日志、缓存和音乐文件；本模板挂载 `./data:/server/data`、`./logs:/server/logs`、`./cache:/server/cache` 与 `./music:/server/music`，并显式注入对应路径环境变量。
 

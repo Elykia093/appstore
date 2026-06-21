@@ -98,15 +98,8 @@ jobs:
               echo "Selected image line: $image_line"
               echo "Extracted image: $image"
 
-              image_without_digest="${image%%@*}"
-              if [[ "$image_without_digest" == *":"* ]]; then
-                new_version="${image_without_digest##*:}"
-                trimmed_version="${new_version#v}"
-                echo "Parsed new version: $trimmed_version"
-              else
-                trimmed_version=""
-                echo "No version tag found in image."
-              fi
+              trimmed_version=$(python3 scripts/resolve-app-version.py "$app_name" "$image")
+              echo "Resolved 1Panel app version: $trimmed_version"
 
               changed_apps+=("${app_name}:${old_version}:${trimmed_version}")
               echo "Calling renovate-app-version.sh with: $app_name, $old_version, $trimmed_version"
@@ -137,7 +130,7 @@ jobs:
                 continue
               fi
 
-              if [[ "$new_version" == "latest" || "$new_version" == "$old_version" ]]; then
+              if [[ "$new_version" == "$old_version" ]]; then
                 git commit -m "[auto-version-bump] 📈更新应用 $app_name 的镜像标签或摘要" --no-verify
               else
                 git commit -m "[auto-version-bump] 📈将应用 $app_name 的版本从 $old_version 升级到 $new_version" --no-verify

@@ -20,22 +20,23 @@
 
 本仓库模板已按当前 1Panel 服务器上的实际 Docker Compose 编排对齐，敏感值仅保留为 1Panel 表单变量，不写入仓库。
 
-| 应用 | 镜像 | 默认端口映射 | 持久化与配置 |
-| --- | --- | --- | --- |
-| Anheyu | `anheyu/pro:latest` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
-| CPA / CLIProxyAPI | `eceasy/cli-proxy-api:latest` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
-| Octopus | `bestrui/octopus:latest` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
-| Lsky Pro | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
-| Metapi | `1467078763/metapi:latest` | `4000:4000` | `./data:/app/data` |
-| AxonHub | `looplj/axonhub:latest` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
-| LX Sync Server | `ghcr.io/xcq0607/lxserver:latest` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
+| 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
+| --- | --- | --- | --- | --- |
+| Anheyu | `1.8.16` | `anheyu/pro:1.8.16` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
+| CPA / CLIProxyAPI | `7.2.26` | `eceasy/cli-proxy-api:v7.2.26` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
+| Octopus | `0.9.28` | `bestrui/octopus:v0.9.28` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
+| Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
+| Metapi | `1.3.0` | `1467078763/metapi:v1.3.0` | `4000:4000` | `./data:/app/data` |
+| AxonHub | `1.0.0-beta4` | `looplj/axonhub:v1.0.0-beta4` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
+| LX Sync Server | `1.9.4` | `ghcr.io/xcq0607/lxserver:v1.9.4` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
 
 - 有 PostgreSQL 能力的应用优先使用 PostgreSQL：Anheyu、CPA、Octopus、Lsky、AxonHub。
 - Lsky 的实际运行容器还会从环境文件注入数据库与 Redis 相关变量，本模板改为 1Panel 表单变量直接注入，避免保存真实 `.env`。
-- Octopus 服务器上的 compose 已是 `bestrui/octopus:latest`，但当前运行容器仍可能是旧镜像，重建容器后才会完全对齐。
-- 多个模板使用 `latest` 是为了贴合现有编排；生产环境如需严格可追溯发布，建议改为不可变版本或镜像 digest。
+- 1Panel 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
+- Lsky 使用的 `ghcr.io/walrus8364/lsky-pro` 镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以应用版本目录写 `2.1`，compose 保留 `latest@sha256`。
+- 所有镜像都带 digest pin，安装时仍可追溯到不可变镜像内容。
 
 ---
 
@@ -45,9 +46,9 @@
 
 - Renovate 只扫描应用模板里的 Docker Compose 文件，不处理旧仓库残留应用或 GitHub Actions 依赖。
 - Renovate 会在每日定时、手动触发，以及 `main` 分支中应用 compose / Renovate 配置变更时运行。
-- 对 `latest` 这类浮动标签启用 digest pin，镜像内容变化时会生成 digest 更新 PR。
 - 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录。
-- 对 `latest@sha256` 这类镜像，Renovate 更新 compose 中的摘要；如果版本目录还不是 `latest`，`renovate-app-version.yml` 会同步重命名为 `latest`，已是 `latest` 时只提交摘要变更。
+- 对 Lsky 这种只有 `latest` 镜像 tag 的例外，`renovate-app-version.yml` 会从上游 GitHub Release 解析真实应用版本，目录仍写版本号。
+- 所有镜像启用 digest pin；镜像内容变化时 Renovate 会生成摘要更新 PR。
 - 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
 - Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。
 
