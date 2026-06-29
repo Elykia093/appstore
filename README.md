@@ -22,8 +22,8 @@
 
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
-| Anheyu | `1.8.16` | `anheyu/pro:1.8.16` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
-| CPA / CLIProxyAPI | `7.2.26` | `eceasy/cli-proxy-api:v7.2.26` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
+| Anheyu | `1.8.20` | `anheyu/pro:1.8.20` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
+| CPA / CLIProxyAPI | `7.2.45` | `eceasy/cli-proxy-api:v7.2.45` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Octopus | `0.9.28` | `bestrui/octopus:v0.9.28` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | Metapi | `1.3.0` | `1467078763/metapi:v1.3.0` | `4000:4000` | `./data:/app/data` |
@@ -46,8 +46,8 @@
 
 - Renovate 只扫描应用模板里的 Docker Compose 文件，不处理旧仓库残留应用或 GitHub Actions 依赖。
 - Renovate 会在每日定时、手动触发，以及 `main` 分支中应用 compose / Renovate 配置变更时运行。
-- 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录。
-- 对 Lsky 这种只有 `latest` 镜像 tag 的例外，`renovate-app-version.yml` 会从上游 GitHub Release 解析真实应用版本，目录仍写版本号。
+- 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录和 README 编排表。
+- 对 Lsky 这种只有 `latest` 镜像 tag 的例外，`renovate-app-version.yml` 会从上游 GitHub Release 解析真实应用版本，目录和 README 仍写版本号。
 - 所有镜像启用 digest pin；镜像内容变化时 Renovate 会生成摘要更新 PR。
 - 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
 - Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。

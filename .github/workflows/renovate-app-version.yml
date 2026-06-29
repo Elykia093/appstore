@@ -107,6 +107,8 @@ jobs:
             fi
           done
 
+          python3 scripts/sync-readme-app-table.py
+
           echo "All changed apps: ${changed_apps[*]}"
           echo "apps=$(IFS=, ; echo "${changed_apps[*]}")" >> $GITHUB_OUTPUT
 
@@ -123,9 +125,9 @@ jobs:
 
             if [[ -n "$app_name" && -n "$new_version" ]]; then
               echo "Staging all changes for apps/$app_name ..."
-              git add -A -- "apps/$app_name"
+              git add -A -- "apps/$app_name" README.md
 
-              if git diff --cached --quiet -- "apps/$app_name"; then
+              if git diff --cached --quiet -- "apps/$app_name" README.md; then
                 echo "apps/$app_name 没有需要提交的改动"
                 continue
               fi
