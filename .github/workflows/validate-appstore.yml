@@ -11,6 +11,7 @@ on:
       - "renovate.json"
       - "scripts/validate-appstore.py"
       - "scripts/resolve-app-version.py"
+      - "scripts/check-updates.py"
       - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
       - ".github/workflows/**"
@@ -22,6 +23,7 @@ on:
       - "renovate.json"
       - "scripts/validate-appstore.py"
       - "scripts/resolve-app-version.py"
+      - "scripts/check-updates.py"
       - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
       - ".github/workflows/**"
@@ -58,7 +60,7 @@ jobs:
         run: python scripts/sync-readme-app-table.py --check
 
       - name: Compile validation helpers
-        run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py scripts/sync-app-version-directories.py scripts/sync-readme-app-table.py
+        run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py scripts/check-updates.py scripts/sync-app-version-directories.py scripts/sync-readme-app-table.py
 
       - name: Validate Renovate version helper syntax
         run: bash -n .github/workflows/renovate-app-version.sh
