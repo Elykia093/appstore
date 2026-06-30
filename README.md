@@ -51,26 +51,6 @@
 - 所有镜像启用 digest pin；镜像内容变化时 Renovate 会生成摘要更新 PR。
 - `Check App Updates` workflow 会每天额外核查 7 个应用的 GitHub latest release 与 registry 当前 digest；如果上游 release 或镜像 digest 已经落后，会直接失败提醒。
 - 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
-- Renovate PR 合并到 `main` 后，会由 `sync-to-cnb.yml` 通过 `push main` 触发 CNB 同步；未配置 CNB 变量时自动跳过。
-
----
-
-## CNB 镜像同步配置
-
-`sync-to-cnb.yml` 不会保存真实凭据。要启用 CNB 镜像同步，需要在 GitHub 仓库配置：
-
-| 类型 | 名称 | 说明 |
-| --- | --- | --- |
-| Secret | `CNB_USERNAME` | CNB 登录用户名 |
-| Secret | `CNB_TOKEN` | CNB 访问令牌 |
-| Variable | `CNB_REPOSITORY` | CNB 仓库路径，不带 `.git`，例如 `your-namespace/appstore` |
-
-配置后可以在 Actions 手动运行 `sync-to-cnb.yml`：
-
-- `force_sync=true`：不检查最近 6 小时提交，直接尝试同步。
-- `require_cnb_config=true`：缺少 CNB 配置时让 workflow 失败，适合用来确认配置已经生效。
-
-如果未配置完整，workflow 会在 Job Summary 里列出缺少的配置名，并跳过 CNB 推送；GitHub 主仓库仍是当前源仓库。
 
 ---
 
