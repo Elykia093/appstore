@@ -11,6 +11,7 @@ on:
       - "renovate.json"
       - "scripts/validate-appstore.py"
       - "scripts/resolve-app-version.py"
+      - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
       - ".github/workflows/**"
   pull_request:
@@ -21,6 +22,7 @@ on:
       - "renovate.json"
       - "scripts/validate-appstore.py"
       - "scripts/resolve-app-version.py"
+      - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
       - ".github/workflows/**"
   workflow_dispatch:
@@ -43,6 +45,12 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install --disable-pip-version-check PyYAML
 
+      - name: Normalize Renovate PR app versions
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/sync-app-version-directories.py
+
       - name: Validate app store metadata
         run: python scripts/validate-appstore.py
 
@@ -50,7 +58,7 @@ jobs:
         run: python scripts/sync-readme-app-table.py --check
 
       - name: Compile validation helpers
-        run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py scripts/sync-readme-app-table.py
+        run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py scripts/sync-app-version-directories.py scripts/sync-readme-app-table.py
 
       - name: Validate Renovate version helper syntax
         run: bash -n .github/workflows/renovate-app-version.sh
