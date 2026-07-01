@@ -49,7 +49,7 @@
 - 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录和 README 编排表。
 - 对 Lsky 这种只有 `latest` 镜像 tag 的例外，`renovate-app-version.yml` 会从上游 GitHub Release 解析真实应用版本，目录和 README 仍写版本号。
 - 所有镜像启用 digest pin；镜像内容变化时 Renovate 会生成摘要更新 PR。
-- `Check App Updates` workflow 会每天额外核查 7 个应用的 GitHub latest release 与 registry 当前 digest；如果上游 release 或镜像 digest 已经落后，会直接失败提醒。
+- `Check App Updates` workflow 会每天额外核查 7 个应用的 GitHub latest release 与 registry 当前 digest；如果上游 release 或镜像 digest 已经落后，只在 Job Summary 展示结果，不把工作流标为失败。
 - 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
 
 ---

@@ -25,4 +25,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -o pipefail
-          python scripts/check-updates.py | tee "$GITHUB_STEP_SUMMARY"
+          python scripts/check-updates.py --no-fail | tee "$GITHUB_STEP_SUMMARY"
