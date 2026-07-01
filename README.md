@@ -9,7 +9,7 @@
 | Anheyu (`anheyu`) | [anzhiyu-c/anheyu-app](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
 | CPA / CLIProxyAPI (`cpa`) | [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
 | Octopus (`octopus`) | [bestruirui/octopus](https://github.com/bestruirui/octopus) | PostgreSQL |
-| Lsky Pro (`lsky`) | [lsky-org/lsky-pro](https://github.com/lsky-org/lsky-pro) / `ghcr.io/walrus8364/lsky-pro:latest` | PostgreSQL，可选 Redis |
+| Lsky Pro (`lsky`) | [lsky-pro](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro) | PostgreSQL，可选 Redis |
 | Metapi (`metapi`) | [cita-777/metapi](https://github.com/cita-777/metapi) | 本地数据目录 |
 | AxonHub (`axonhub`) | [looplj/axonhub](https://github.com/looplj/axonhub) | PostgreSQL |
 | LX Sync Server (`lx-sync-server`) | [XCQ0607/lxserver](https://github.com/XCQ0607/lxserver) | 本地数据目录 |

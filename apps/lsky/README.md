@@ -2,7 +2,7 @@
 
 兰空图床 Lsky Pro 的 1Panel 应用模板。
 
-对应项目：[lsky-org/lsky-pro](https://github.com/lsky-org/lsky-pro)
+对应镜像：[lsky-pro](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro)
 
 本模板使用 `ghcr.io/walrus8364/lsky-pro:latest` 镜像，容器内端口为 `80`，并将 `./data` 挂载到 `/var/www/html`。
 
