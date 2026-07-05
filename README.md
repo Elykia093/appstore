@@ -1,24 +1,110 @@
-# 1Panel 私有 App Store
+<p align="center">
+  <img src="./logo.png" width="96" alt="1Panel App Store">
+</p>
 
-这是一个基于他人 1Panel 第三方应用商店整理的私有精简仓库，用于收纳个人需要的一组容器化应用与预设配置，基于 [1Panel](https://github.com/1Panel-dev/1Panel) 的 App Store 架构。
+<h1 align="center">1Panel 私有 App Store</h1>
 
-当前仅保留以下应用：
+<p align="center">
+  <img src="https://img.shields.io/badge/Maintainer-Elykia093-blue.svg" alt="Maintainer">
+  <img src="https://img.shields.io/badge/Apps-7-success.svg" alt="Apps">
+  <img src="https://img.shields.io/badge/Platform-1Panel%20v2-orange.svg" alt="1Panel v2">
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791.svg" alt="PostgreSQL">
+</p>
 
-| 1Panel 应用 | 对应项目/镜像 | 存储口径 |
-| --- | --- | --- |
-| Anheyu (`anheyu`) | [anzhiyu-c/anheyu-app](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
-| CPA / CLIProxyAPI (`cpa`) | [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
-| Octopus (`octopus`) | [bestruirui/octopus](https://github.com/bestruirui/octopus) | PostgreSQL |
-| Lsky Pro (`lsky`) | [lsky-pro](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro) | PostgreSQL，可选 Redis |
-| Metapi (`metapi`) | [cita-777/metapi](https://github.com/cita-777/metapi) | 本地数据目录 |
-| AxonHub (`axonhub`) | [looplj/axonhub](https://github.com/looplj/axonhub) | PostgreSQL |
-| LX Sync Server (`lx-sync-server`) | [XCQ0607/lxserver](https://github.com/XCQ0607/lxserver) | 本地数据目录 |
+<p align="center">
+  <a href="#应用列表">应用列表</a> |
+  <a href="#当前编排口径">编排口径</a> |
+  <a href="#同步到-1panel">同步到 1Panel</a> |
+  <a href="#自动更新">自动更新</a>
+</p>
 
----
+## 仓库介绍
+
+这是一个面向个人使用的 1Panel 第三方本地应用商店，只保留当前需要维护的 7 个容器应用。仓库基于 [1Panel App Store](https://github.com/1Panel-dev/appstore) 结构整理，模板已按实际 Docker Compose 编排收敛，敏感值通过 1Panel 表单变量注入，不写入仓库。
+
+本仓库不是官方应用源，也不保证上游镜像一定适合所有环境。安装前请自行确认镜像来源、端口、持久化目录和安全风险。
+
+## 应用列表
+
+<table>
+<tr>
+<td width="33%" align="center">
+<a href="./apps/anheyu/README.md">
+<img src="./apps/anheyu/logo.png" width="56" height="56" alt="Anheyu"><br>
+<b>Anheyu</b>
+</a><br>
+现代化博客与内容管理系统<br>
+<kbd>PostgreSQL</kbd> <kbd>Redis</kbd><br>
+<a href="https://github.com/anzhiyu-c/anheyu-app">项目来源</a>
+</td>
+<td width="33%" align="center">
+<a href="./apps/cpa/README.md">
+<img src="./apps/cpa/logo.png" width="56" height="56" alt="CPA"><br>
+<b>CPA / CLIProxyAPI</b>
+</a><br>
+AI CLI 统一代理服务<br>
+<kbd>PostgreSQL</kbd><br>
+<a href="https://github.com/router-for-me/CLIProxyAPI">项目来源</a>
+</td>
+<td width="33%" align="center">
+<a href="./apps/octopus/README.md">
+<img src="./apps/octopus/logo.png" width="56" height="56" alt="Octopus"><br>
+<b>Octopus</b>
+</a><br>
+LLM API 聚合与负载均衡服务<br>
+<kbd>PostgreSQL</kbd><br>
+<a href="https://github.com/bestruirui/octopus">项目来源</a>
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="33%" align="center">
+<a href="./apps/lsky/README.md">
+<img src="./apps/lsky/logo.png" width="56" height="56" alt="Lsky Pro"><br>
+<b>Lsky Pro</b>
+</a><br>
+自托管图床系统<br>
+<kbd>PostgreSQL</kbd> <kbd>Redis 可选</kbd><br>
+<a href="https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro">lsky-pro 镜像</a>
+</td>
+<td width="33%" align="center">
+<a href="./apps/metapi/README.md">
+<img src="./apps/metapi/logo.png" width="56" height="56" alt="Metapi"><br>
+<b>Metapi</b>
+</a><br>
+多个 AI 网关的统一聚合入口<br>
+<kbd>本地数据目录</kbd><br>
+<a href="https://github.com/cita-777/metapi">项目来源</a>
+</td>
+<td width="33%" align="center">
+<a href="./apps/axonhub/README.md">
+<img src="./apps/axonhub/logo.png" width="56" height="56" alt="AxonHub"><br>
+<b>AxonHub</b>
+</a><br>
+一体化 AI 开发与管理平台<br>
+<kbd>PostgreSQL</kbd><br>
+<a href="https://github.com/looplj/axonhub">项目来源</a>
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td align="center">
+<a href="./apps/lx-sync-server/README.md">
+<img src="./apps/lx-sync-server/logo.png" width="56" height="56" alt="LX Sync Server"><br>
+<b>LX Sync Server</b>
+</a><br>
+LX Music 数据同步服务端<br>
+<kbd>本地数据目录</kbd><br>
+<a href="https://github.com/XCQ0607/lxserver">项目来源</a>
+</td>
+</tr>
+</table>
 
 ## 当前编排口径
-
-本仓库模板已按当前 1Panel 服务器上的实际 Docker Compose 编排对齐，敏感值仅保留为 1Panel 表单变量，不写入仓库。
 
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
@@ -33,58 +119,17 @@
 说明：
 
 - 有 PostgreSQL 能力的应用优先使用 PostgreSQL：Anheyu、CPA、Octopus、Lsky、AxonHub。
-- Lsky 的实际运行容器还会从环境文件注入数据库与 Redis 相关变量，本模板改为 1Panel 表单变量直接注入，避免保存真实 `.env`。
-- 1Panel 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
-- Lsky 使用的 `ghcr.io/walrus8364/lsky-pro` 镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以应用版本目录写 `2.1`，compose 保留 `latest@sha256`。
+- Lsky 使用 `ghcr.io/walrus8364/lsky-pro` 镜像；镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以 1Panel 版本目录写真实应用版本 `2.1`，compose 保留 `latest@sha256`。
 - 所有镜像都带 digest pin，安装时仍可追溯到不可变镜像内容。
+- 仓库根目录 `.env` 只作为本地文件存在，不参与安装模板和镜像替换逻辑。
 
----
+## 同步到 1Panel
 
-## 自动更新检测
-
-本仓库使用 Renovate 检测 `apps/*/*/docker-compose.yml` 中的 Docker 镜像：
-
-- Renovate 只扫描应用模板里的 Docker Compose 文件，不处理旧仓库残留应用或 GitHub Actions 依赖。
-- Renovate 会在每日定时、手动触发，以及 `main` 分支中应用 compose / Renovate 配置变更时运行。
-- 对显式版本标签，Renovate 更新镜像标签后会触发 `renovate-app-version.yml`，同步 1Panel 版本目录和 README 编排表。
-- 对 Lsky 这种只有 `latest` 镜像 tag 的例外，`renovate-app-version.yml` 会从上游 GitHub Release 解析真实应用版本，目录和 README 仍写版本号。
-- 所有镜像启用 digest pin；镜像内容变化时 Renovate 会生成摘要更新 PR。
-- `Check App Updates` workflow 会每天额外核查 7 个应用的 GitHub latest release 与 registry 当前 digest；如果上游 release 或镜像 digest 已经落后，只在 Job Summary 展示结果，不把工作流标为失败。
-- 默认会回退使用 `GITHUB_TOKEN` 运行 Renovate，用于检测镜像并尝试创建 PR；这与原始项目 `willow-god/appstore` 的 Renovate token 模式一致。若只使用默认 `GITHUB_TOKEN`，需要在仓库 Actions 设置中允许 GitHub Actions 创建 PR；同时 GitHub 会抑制由该 token 推送的 `renovate/*` 分支继续触发 `renovate-app-version.yml`，所以完整自动版本整理/自动合并链路仍建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。
-
----
-
-## ✅ 应用收录标准
-
-本仓库优先收录以下类型的容器应用：
-
-- 常用工具或服务：覆盖个人或开发者日常使用频繁的项目
-- 官方 Docker 镜像优先：确保稳定与安全
-- PostgreSQL 优先：目标应用支持数据库时优先使用 PostgreSQL
-- 简洁配置模板：配套清晰的 Docker Compose 和 formFields 文件，方便一键部署
-
----
-
-## 🛠 使用说明
-
-你可以将本仓库作为第三方 App Store 添加至 1Panel，即可在 Web 面板中浏览、安装、管理其中的应用。
-
-### 添加第三方应用仓库
-
-参考官方文档：[📚 如何添加第三方应用仓库](https://github.com/1Panel-dev/appstore/wiki/%E5%A6%82%E4%BD%95%E6%8F%90%E4%BA%A4%E8%87%AA%E5%B7%B1%E6%83%B3%E8%A6%81%E7%9A%84%E5%BA%94%E7%94%A8)
-
----
-
-## 🔄 同步更新脚本
-
-以下是自动同步 App 应用至 1Panel 的脚本，适用于开发或部署用户。
-
-### 全量同步脚本
+默认 1Panel 安装目录为 `/opt/1panel`。如果你的安装目录不同，请调整 `LOCAL_APPS_DIR`。
 
 ```bash
 #!/bin/bash
 set -euo pipefail
-IFS=$'\n\t'
 
 GIT_REPO="https://github.com/Elykia093/appstore.git"
 TMP_DIR="/opt/1panel/resource/apps/local/appstore-localApps"
@@ -92,182 +137,74 @@ LOCAL_APPS_DIR="/opt/1panel/resource/apps/local"
 
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo "📥 Cloning appstore repo..."
-[ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
-git clone "$GIT_REPO" "$TMP_DIR"
+rm -rf "$TMP_DIR"
+git clone --depth=1 "$GIT_REPO" "$TMP_DIR"
 
-echo "🔄 Mirroring apps..."
 cd "$TMP_DIR"
 if [[ -f ./mirror.sh ]]; then
     chmod +x ./mirror.sh
     ./mirror.sh
-else
-    echo "⚠️ mirror.sh not found, skipping mirroring"
-fi
-cd -
-
-mkdir -p "$LOCAL_APPS_DIR"
-
-for app_path in "$TMP_DIR/apps/"*; do
-    [ -d "$app_path" ] || continue
-    app_name=$(basename "$app_path")
-    local_app_path="$LOCAL_APPS_DIR/$app_name"
-
-    echo "🔁 Updating app: $app_name"
-    [ -d "$local_app_path" ] && rm -rf "$local_app_path"
-    cp -r "$app_path" "$local_app_path"
-done
-
-echo "✅ Sync completed."
-```
-
-------
-
-## 😎 单应用同步
-
-如果你想同步部分应用，可以采用以下脚本：
-
-```bash
-#!/bin/bash
-set -euo pipefail
-IFS=$'\n\t'
-
-# ========= 配置：要安装的应用列表 =========
-APPS_TO_INSTALL=(
-    "anheyu"
-    "cpa"
-    "octopus"
-    "lsky"
-    "metapi"
-    "axonhub"
-    "lx-sync-server"
-)
-
-# ========= 常量 =========
-GIT_REPO="https://github.com/Elykia093/appstore.git"
-TMP_DIR="/opt/1panel/resource/apps/local/appstore-localApps"
-LOCAL_APPS_DIR="/opt/1panel/resource/apps/local"
-
-trap 'rm -rf "$TMP_DIR"' EXIT
-
-echo "📥 Cloning appstore repo..."
-[ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
-git clone "$GIT_REPO" "$TMP_DIR"
-
-echo "🔄 Running mirror.sh (if exists)..."
-cd "$TMP_DIR"
-if [[ -f ./mirror.sh ]]; then
-    chmod +x ./mirror.sh
-    ./mirror.sh || echo "⚠️ mirror.sh 执行失败，继续..."
-else
-    echo "⚠️ mirror.sh not found, skipping mirroring"
 fi
 cd - >/dev/null
 
 mkdir -p "$LOCAL_APPS_DIR"
-
-# ========= 遍历安装列表 =========
-for app_name in "${APPS_TO_INSTALL[@]}"; do
-    app_path="$TMP_DIR/apps/$app_name"
-    local_app_path="$LOCAL_APPS_DIR/$app_name"
-
-    if [[ ! -d "$app_path" ]]; then
-        echo "❌ 应用 $app_name 不存在于仓库，跳过"
-        continue
-    fi
-
-    echo "🔁 Updating app: $app_name"
-    [ -d "$local_app_path" ] && rm -rf "$local_app_path"
-    cp -r "$app_path" "$local_app_path"
+for app_path in "$TMP_DIR/apps/"*; do
+    [ -d "$app_path" ] || continue
+    app_name="$(basename "$app_path")"
+    rm -rf "$LOCAL_APPS_DIR/$app_name"
+    cp -r "$app_path" "$LOCAL_APPS_DIR/$app_name"
 done
 
-echo "✅ Selected apps sync completed."
+echo "Sync completed."
 ```
 
-## 🎡 镜像加速配置
+同步完成后，在 1Panel 应用商店刷新本地应用列表。
 
-在国内环境下，部分容器镜像源（如 `ghcr.io`、`gcr.io`、`quay.io` 等）可能会出现访问缓慢或被墙的情况。
+## 镜像加速
 
-你可以通过本镜像库独有的 **镜像映射配置文件** 来自动替换 `docker-compose.yml` 中的镜像地址，提升下载速度。
-
-**注意该方式可能仅仅适用于本应用商店。**
-
-### 1️⃣ 配置文件路径
-
-镜像配置文件固定放在：
-
-```bash
-/opt/mirror-config.env
-```
-
-如果需要配置对应镜像，请自行创建以上文件，然后写入以下内容。
-
-### 2️⃣ 配置文本
+`mirror.sh` 会读取 `/opt/mirror-config.env`，按需替换 `docker-compose.yml` 中的镜像仓库前缀。没有该文件时会直接跳过，不影响安装。
 
 ```ini
-# ====== GHCR (GitHub Container Registry) ======
-# 是否经常被墙：是
 GHCR_ENABLE=true
 GHCR_MIRROR=ghcr.io.mirror
 
-# ====== Quay.io (RedHat/Community images) ======
-# 是否经常被墙：是
 QUAY_ENABLE=false
 QUAY_MIRROR=quay.io.mirror
 
-# ====== GCR (Google Container Registry) ======
-# 是否经常被墙：是
 GCR_ENABLE=false
 GCR_MIRROR=gcr.io.mirror
 
-# ====== k8s.gcr.io (旧 Kubernetes 镜像仓库) ======
-# 是否经常被墙：是
 K8S_GCR_ENABLE=false
 K8S_GCR_MIRROR=k8s.gcr.io.mirror
 
-# ====== registry.k8s.io (新 Kubernetes 镜像仓库) ======
-# 是否经常被墙：是
 K8S_REG_ENABLE=false
 K8S_REG_MIRROR=registry.k8s.io.mirror
 ```
 
-> 💡 **说明**：
->
-> - `*_ENABLE` 为 `true` 时才会进行替换。
-> - `*_MIRROR` 填写你可用的镜像源地址。
-> - 不存在该配置文件时，脚本会跳过替换步骤，不会影响后续流程。
+## 自动更新
 
-### 3️⃣ 自动替换逻辑
+本仓库使用 Renovate 和 GitHub Actions 维护镜像与版本目录：
 
-`mirror.sh` 只读取 `/opt/mirror-config.env`。没有该配置文件时会直接跳过镜像替换，不依赖仓库根目录 `.env`。
+- `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
+- `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表。
+- `Check App Updates` 每天额外核查 7 个应用的 GitHub latest release 与 registry digest；发现落后时只写入 Job Summary，不把工作流标为失败。
+- `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
 
-在克隆仓库后，按照本仓库的脚本，会在应用目录下执行 `mirror.sh` 进行镜像源替换。
+如果需要让 Renovate 分支继续自动触发后续工作流，建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。
 
-这样即使镜像源被墙，也能快速替换为你配置的加速地址。
+## 维护约定
 
-> **目前还在测试中**：由于目前还在测试中，所以可能会出现一些问题。如果出现问题，请及时反馈。
+- 只收录当前实际需要维护的应用，不追求大而全。
+- 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
+- 敏感配置只放在 1Panel 表单变量或运行环境中，不写入仓库模板。
+- 修改应用模板后运行：
 
----
+```bash
+python scripts/validate-appstore.py
+python scripts/sync-readme-app-table.py --check
+python scripts/check-updates.py --no-fail
+```
 
-## 📮 问题反馈
+## 反馈
 
-如发现配置错误或希望调整应用，欢迎在 Issues 区提交反馈：
-
-- 🛠 [本仓库 Issues](https://github.com/Elykia093/appstore/issues)
-
-> ⚠️ 本项目仅对仓库中提供的应用内容提供支持。1Panel 本体问题请前往 [1Panel 主项目](https://github.com/1Panel-dev/1Panel/issues) 提问。
-
-------
-
-## ✨ 项目维护
-
-- 维护者：Elykia093
-- 仓库地址：https://github.com/Elykia093/appstore
-
-------
-
-## 🧩 想添加自己的应用？
-
-欢迎参考官方教程，构建你自己的 App Store 仓库：
-
-👉 [📘 官方指南：如何提交自己想要的应用](https://github.com/1Panel-dev/appstore/wiki/如何提交自己想要的应用)
+如发现配置错误或需要调整应用，请在 [Issues](https://github.com/Elykia093/appstore/issues) 反馈。1Panel 本体问题请前往 [1Panel 主项目](https://github.com/1Panel-dev/1Panel/issues)。
