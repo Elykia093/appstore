@@ -16,6 +16,7 @@ RELEASE_REPOS = {
     "lsky": "lsky-org/lsky-pro",
     "lx-sync-server": "XCQ0607/lxserver",
     "metapi": "cita-777/metapi",
+    "new-api": "QuantumNous/new-api",
     "octopus": "bestruirui/octopus",
 }
 

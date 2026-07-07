@@ -1,0 +1,32 @@
+services:
+  new-api:
+    image: calciumion/new-api:v1.0.0-rc.20
+    container_name: ${CONTAINER_NAME}
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "${PANEL_APP_PORT_HTTP}:3000"
+    environment:
+      SQL_DSN: postgresql://${PANEL_DB_USER}:${PANEL_DB_USER_PASSWORD}@${PANEL_DB_HOST}:${PANEL_DB_PORT}/${PANEL_DB_NAME}
+      TZ: ${TZ}
+      NODE_NAME: ${NODE_NAME}
+      SESSION_SECRET: ${SESSION_SECRET}
+      ERROR_LOG_ENABLED: "true"
+      BATCH_UPDATE_ENABLED: "true"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -q '\"success\":[[:space:]]*true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      createdBy: "Apps"
+    networks:
+      - 1panel-network
+
+networks:
+  1panel-network:
+    external: true

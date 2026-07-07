@@ -1,0 +1,26 @@
+name: New API
+tags:
+  - AI / 大模型
+  - 网关
+title: New API 大模型网关与 AI 资产管理系统
+description: New API 是新一代大模型网关与 AI 资产管理系统，本模板使用 PostgreSQL。
+additionalProperties:
+  key: new-api
+  name: New API
+  tags:
+    - AI
+    - Tool
+  shortDescZh: 大模型网关与 AI 资产管理系统（PostgreSQL）
+  shortDescEn: LLM gateway and AI asset management system with PostgreSQL
+  type: website
+  crossVersionUpdate: true
+  limit: 0
+  website: https://www.newapi.ai/
+  github: https://github.com/QuantumNous/new-api
+  document: https://docs.newapi.pro/
+  description:
+    en: New API is a unified AI model hub for aggregation, distribution, and OpenAI-compatible access. This template uses PostgreSQL.
+    zh: New API 是统一的大模型网关与 AI 资产管理系统，支持模型聚合、分发和 OpenAI 兼容调用，本模板使用 PostgreSQL。
+  architectures:
+    - amd64
+    - arm64

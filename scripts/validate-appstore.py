@@ -25,10 +25,12 @@ EXPECTED_APPS = {
     "lsky",
     "lx-sync-server",
     "metapi",
+    "new-api",
     "octopus",
 }
 
 FLOATING_IMAGE_TAG_APPS = {"lsky"}
+UNPINNED_IMAGE_APPS = {"new-api"}
 ALLOWED_IMPLICIT_ENV = {"CONTAINER_NAME"}
 COMPOSE_VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(?::?[-+?]).*)?\}")
 
@@ -234,13 +236,19 @@ def validate_apps(loaded: dict[Path, Any], root_tags: set[str], validator: Valid
         validator.require(images, f"{rel(compose_path)} has no service images")
         for image in images:
             all_images.append(image)
-            validator.require(
-                "@sha256:" in image,
-                f"{rel(compose_path)} image is not digest pinned: {image}",
-            )
+            if app in UNPINNED_IMAGE_APPS:
+                validator.require(
+                    "@sha256:" not in image,
+                    f"{rel(compose_path)} image must not include a digest: {image}",
+                )
+            else:
+                validator.require(
+                    "@sha256:" in image,
+                    f"{rel(compose_path)} image is not digest pinned: {image}",
+                )
             validator.require(
                 ":" in image_base(image),
-                f"{rel(compose_path)} image must include an explicit tag before digest: {image}",
+                f"{rel(compose_path)} image must include an explicit tag: {image}",
             )
 
             tag = image_tag(image)
@@ -292,8 +300,8 @@ def validate_renovate(validator: Validator) -> None:
     package_rules = config.get("packageRules")
     validator.require(isinstance(package_rules, list) and bool(package_rules), "renovate.json packageRules is empty")
     digest_rules = [
-        rule
-        for rule in package_rules or []
+        (index, rule)
+        for index, rule in enumerate(package_rules or [])
         if isinstance(rule, dict)
         and rule.get("matchManagers") == ["docker-compose"]
         and rule.get("matchDatasources") == ["docker"]
@@ -304,6 +312,24 @@ def validate_renovate(validator: Validator) -> None:
         bool(digest_rules),
         "renovate.json must pin docker-compose Docker image digests with docker versioning",
     )
+    new_api_digest_rules = [
+        (index, rule)
+        for index, rule in enumerate(package_rules or [])
+        if isinstance(rule, dict)
+        and rule.get("matchManagers") == ["docker-compose"]
+        and rule.get("matchDatasources") == ["docker"]
+        and "calciumion/new-api" in rule.get("matchPackageNames", [])
+        and rule.get("pinDigests") is False
+    ]
+    validator.require(
+        bool(new_api_digest_rules),
+        "renovate.json must keep calciumion/new-api unpinned",
+    )
+    if digest_rules and new_api_digest_rules:
+        validator.require(
+            new_api_digest_rules[-1][0] > digest_rules[-1][0],
+            "renovate.json calciumion/new-api unpin rule must appear after the general digest pin rule",
+        )
 
 
 def main() -> int:

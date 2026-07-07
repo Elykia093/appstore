@@ -1,0 +1,103 @@
+additionalProperties:
+  formFields:
+    - child:
+        default: ""
+        envKey: PANEL_DB_HOST
+        required: true
+        type: service
+      default: postgresql
+      envKey: PANEL_DB_TYPE
+      labelEn: Database Service
+      labelZh: 数据库服务
+      label:
+        en: Database Service
+        zh: 数据库服务
+      required: true
+      type: apps
+      values:
+        - label: PostgreSQL
+          value: postgresql
+    - default: newapi
+      envKey: PANEL_DB_NAME
+      labelEn: Database Name
+      labelZh: 数据库名
+      label:
+        en: Database Name
+        zh: 数据库名
+      random: true
+      required: true
+      rule: paramCommon
+      type: text
+    - default: newapi
+      envKey: PANEL_DB_USER
+      labelEn: Database User
+      labelZh: 数据库用户
+      label:
+        en: Database User
+        zh: 数据库用户
+      random: true
+      required: true
+      rule: paramCommon
+      type: text
+    - default: newapi
+      envKey: PANEL_DB_USER_PASSWORD
+      labelEn: Database User Password
+      labelZh: 数据库用户密码
+      label:
+        en: Database User Password
+        zh: 数据库用户密码
+      random: true
+      required: true
+      type: password
+    - default: "5432"
+      edit: true
+      envKey: PANEL_DB_PORT
+      labelEn: Database Port
+      labelZh: 数据库端口
+      label:
+        en: Database Port
+        zh: 数据库端口
+      required: true
+      type: text
+    - default: 3000
+      edit: true
+      envKey: PANEL_APP_PORT_HTTP
+      labelEn: HTTP Port
+      labelZh: HTTP 端口
+      label:
+        en: HTTP Port
+        zh: HTTP 端口
+      required: true
+      rule: paramPort
+      type: number
+    - default: Asia/Shanghai
+      edit: true
+      envKey: TZ
+      labelEn: Time Zone
+      labelZh: 时区
+      label:
+        en: Time Zone
+        zh: 时区
+      required: true
+      type: text
+    - default: new-api-node-1
+      edit: true
+      envKey: NODE_NAME
+      labelEn: Node Name
+      labelZh: 节点名称
+      label:
+        en: Node Name
+        zh: 节点名称
+      required: true
+      type: text
+    - default: ""
+      edit: true
+      envKey: SESSION_SECRET
+      labelEn: Session Secret
+      labelZh: 会话密钥
+      label:
+        en: Session Secret
+        zh: 会话密钥
+      random: true
+      required: true
+      type: password

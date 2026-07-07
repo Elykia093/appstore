@@ -117,14 +117,15 @@ def compose_image(compose_path: Path) -> str:
     match = IMAGE_RE.search(compose_path.read_text(encoding="utf-8"))
     if not match:
         raise RuntimeError(f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line")
-    return match.group(1)
+    return match.group(1).strip()
 
 
 def parse_image(image: str) -> ImageRef:
-    if "@sha256:" not in image:
-        raise RuntimeError(f"image is not digest pinned: {image}")
-
-    ref, digest = image.split("@sha256:", 1)
+    image = image.strip()
+    if "@sha256:" in image:
+        ref, digest = image.split("@sha256:", 1)
+    else:
+        ref, digest = image, ""
     name_part = ref.rsplit("/", 1)[-1]
     if ":" not in name_part:
         raise RuntimeError(f"image does not contain an explicit tag: {image}")
@@ -153,7 +154,7 @@ def parse_image(image: str) -> ImageRef:
         registry=registry,
         repo=repo,
         tag=tag,
-        pinned_digest=f"sha256:{digest.strip()}",
+        pinned_digest=f"sha256:{digest.strip()}" if digest else "",
     )
 
 
@@ -203,8 +204,10 @@ def check_app(resolver: Any, app_dir: Path) -> UpdateStatus:
     image = parse_image(image_text)
 
     latest_version = latest_release_version(resolver, app)
-    remote_digest = remote_manifest_digest(image)
-    ok = current_dir.name == latest_version and image.pinned_digest == remote_digest
+    remote_digest = remote_manifest_digest(image) if image.pinned_digest else ""
+    ok = current_dir.name == latest_version and (
+        not image.pinned_digest or image.pinned_digest == remote_digest
+    )
 
     return UpdateStatus(
         app=app,
@@ -227,7 +230,10 @@ def render_markdown(statuses: list[UpdateStatus]) -> str:
             state = f"ERROR: {status.error}"
             digest_state = "unknown"
         else:
-            digest_state = "match" if status.pinned_digest == status.remote_digest else "stale"
+            if not status.pinned_digest:
+                digest_state = "unpinned"
+            else:
+                digest_state = "match" if status.pinned_digest == status.remote_digest else "stale"
             state = "ok" if status.ok else "stale"
         lines.append(
             "| {app} | `{current}` | `{latest}` | `{image}` | {digest} | {state} |".format(
