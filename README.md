@@ -1,108 +1,53 @@
-<p align="center">
-  <img src="./logo.png" width="96" alt="1Panel App Store">
-</p>
+# 1Panel 私有应用商店
 
-<h1 align="center">1Panel 私有 App Store</h1>
+本仓库是面向个人使用的 [1Panel](https://github.com/1Panel-dev/1Panel) 本地应用商店，包含当前需要维护的 7 个应用模板，可同步到 1Panel 的本地应用目录后安装使用。
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Maintainer-Elykia093-blue.svg" alt="Maintainer">
-  <img src="https://img.shields.io/badge/Apps-7-success.svg" alt="Apps">
-  <img src="https://img.shields.io/badge/Platform-1Panel%20v2-orange.svg" alt="1Panel v2">
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791.svg" alt="PostgreSQL">
-</p>
+本仓库基于 [1Panel 官方应用商店](https://github.com/1Panel-dev/appstore) 的目录结构整理，不是官方应用源。安装前请自行确认镜像来源、端口、持久化目录和安全风险。
 
-<p align="center">
-  <a href="#应用列表">应用列表</a> |
-  <a href="#当前编排口径">编排口径</a> |
-  <a href="#同步到-1panel">同步到 1Panel</a> |
-  <a href="#自动更新">自动更新</a>
-</p>
+### 1Panel 私有应用商店收录标准：
 
-## 仓库介绍
-
-这是一个面向个人使用的 1Panel 第三方本地应用商店，只保留当前需要维护的 7 个容器应用。仓库基于 [1Panel App Store](https://github.com/1Panel-dev/appstore) 结构整理，模板已按实际 Docker Compose 编排收敛，敏感值通过 1Panel 表单变量注入，不写入仓库。
-
-本仓库不是官方应用源，也不保证上游镜像一定适合所有环境。安装前请自行确认镜像来源、端口、持久化目录和安全风险。
+- 当前实际需要维护的应用，不追求大而全
+- 项目来源或镜像来源可公开追溯
+- 能通过 Docker Compose 在 1Panel 本地应用中部署
+- 支持数据库的应用优先使用 PostgreSQL
+- 敏感配置只通过 1Panel 表单变量或运行环境注入，不写入仓库
 
 ## 应用列表
 
-<table>
-<tr>
-<td width="33%" align="center">
-<a href="./apps/anheyu/README.md">
-<img src="./apps/anheyu/logo.png" width="56" height="56" alt="Anheyu"><br>
-<b>Anheyu</b>
-</a><br>
-现代化博客与内容管理系统<br>
-<kbd>PostgreSQL</kbd> <kbd>Redis</kbd><br>
-<a href="https://github.com/anzhiyu-c/anheyu-app">项目来源</a>
-</td>
-<td width="33%" align="center">
-<a href="./apps/cpa/README.md">
-<img src="./apps/cpa/logo.png" width="56" height="56" alt="CPA"><br>
-<b>CPA / CLIProxyAPI</b>
-</a><br>
-AI CLI 统一代理服务<br>
-<kbd>PostgreSQL</kbd><br>
-<a href="https://github.com/router-for-me/CLIProxyAPI">项目来源</a>
-</td>
-<td width="33%" align="center">
-<a href="./apps/octopus/README.md">
-<img src="./apps/octopus/logo.png" width="56" height="56" alt="Octopus"><br>
-<b>Octopus</b>
-</a><br>
-LLM API 聚合与负载均衡服务<br>
-<kbd>PostgreSQL</kbd><br>
-<a href="https://github.com/bestruirui/octopus">项目来源</a>
-</td>
-</tr>
-</table>
+| 应用 | 类型 | 项目/镜像来源 | 存储口径 |
+| --- | --- | --- | --- |
+| [Anheyu](./apps/anheyu/README.md) | 博客与内容管理 | [项目来源](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
+| [CPA / CLIProxyAPI](./apps/cpa/README.md) | AI CLI 代理 | [项目来源](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
+| [Octopus](./apps/octopus/README.md) | LLM API 聚合 | [项目来源](https://github.com/bestruirui/octopus) | PostgreSQL |
+| [Lsky Pro](./apps/lsky/README.md) | 图床 | [lsky-pro 镜像](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro) | PostgreSQL，可选 Redis |
+| [Metapi](./apps/metapi/README.md) | AI 网关聚合 | [项目来源](https://github.com/cita-777/metapi) | 本地数据目录 |
+| [AxonHub](./apps/axonhub/README.md) | AI 开发与管理平台 | [项目来源](https://github.com/looplj/axonhub) | PostgreSQL |
+| [LX Sync Server](./apps/lx-sync-server/README.md) | LX Music 同步服务端 | [项目来源](https://github.com/XCQ0607/lxserver) | 本地数据目录 |
 
-<table>
-<tr>
-<td width="33%" align="center">
-<a href="./apps/lsky/README.md">
-<img src="./apps/lsky/logo.png" width="56" height="56" alt="Lsky Pro"><br>
-<b>Lsky Pro</b>
-</a><br>
-自托管图床系统<br>
-<kbd>PostgreSQL</kbd> <kbd>Redis 可选</kbd><br>
-<a href="https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro">lsky-pro 镜像</a>
-</td>
-<td width="33%" align="center">
-<a href="./apps/metapi/README.md">
-<img src="./apps/metapi/logo.png" width="56" height="56" alt="Metapi"><br>
-<b>Metapi</b>
-</a><br>
-多个 AI 网关的统一聚合入口<br>
-<kbd>本地数据目录</kbd><br>
-<a href="https://github.com/cita-777/metapi">项目来源</a>
-</td>
-<td width="33%" align="center">
-<a href="./apps/axonhub/README.md">
-<img src="./apps/axonhub/logo.png" width="56" height="56" alt="AxonHub"><br>
-<b>AxonHub</b>
-</a><br>
-一体化 AI 开发与管理平台<br>
-<kbd>PostgreSQL</kbd><br>
-<a href="https://github.com/looplj/axonhub">项目来源</a>
-</td>
-</tr>
-</table>
+## 仓库结构
 
-<table>
-<tr>
-<td align="center">
-<a href="./apps/lx-sync-server/README.md">
-<img src="./apps/lx-sync-server/logo.png" width="56" height="56" alt="LX Sync Server"><br>
-<b>LX Sync Server</b>
-</a><br>
-LX Music 数据同步服务端<br>
-<kbd>本地数据目录</kbd><br>
-<a href="https://github.com/XCQ0607/lxserver">项目来源</a>
-</td>
-</tr>
-</table>
+```text
+.
+├── data.yaml
+├── logo.png
+├── apps/
+│   └── <app>/
+│       ├── data.yml
+│       ├── logo.png
+│       ├── README.md
+│       └── <version>/
+│           ├── data.yml
+│           └── docker-compose.yml
+├── mirror.sh
+├── renovate.json
+└── scripts/
+```
+
+- `data.yaml` 是应用商店根元数据，定义名称、标题和分类标签。
+- `apps/<app>/data.yml` 是应用元数据，`apps/<app>/<version>/data.yml` 是版本表单配置。
+- `apps/<app>/<version>/docker-compose.yml` 是 1Panel 安装时使用的编排模板。
+- `mirror.sh` 只读取 `/opt/mirror-config.env`，用于按需替换镜像仓库前缀。
+- `scripts/` 中的校验与同步脚本用于 CI、Renovate 和本地维护。
 
 ## 当前编排口径
 
@@ -118,9 +63,9 @@ LX Music 数据同步服务端<br>
 
 说明：
 
-- 有 PostgreSQL 能力的应用优先使用 PostgreSQL：Anheyu、CPA、Octopus、Lsky、AxonHub。
-- Lsky 使用 `ghcr.io/walrus8364/lsky-pro` 镜像；镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以 1Panel 版本目录写真实应用版本 `2.1`，compose 保留 `latest@sha256`。
+- 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
 - 所有镜像都带 digest pin，安装时仍可追溯到不可变镜像内容。
+- Lsky 的镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以 1Panel 版本目录写真实应用版本 `2.1`，compose 保留 `latest@sha256`。
 - 仓库根目录 `.env` 只作为本地文件存在，不参与安装模板和镜像替换逻辑。
 
 ## 同步到 1Panel
@@ -192,12 +137,15 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 如果需要让 Renovate 分支继续自动触发后续工作流，建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。
 
-## 维护约定
+## 创建本地应用
 
-- 只收录当前实际需要维护的应用，不追求大而全。
-- 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
-- 敏感配置只放在 1Panel 表单变量或运行环境中，不写入仓库模板。
-- 修改应用模板后运行：
+可参考 1Panel 官方文档：[如何提交自己想要的应用](https://github.com/1Panel-dev/appstore/wiki/%E5%A6%82%E4%BD%95%E6%8F%90%E4%BA%A4%E8%87%AA%E5%B7%B1%E6%83%B3%E8%A6%81%E7%9A%84%E5%BA%94%E7%94%A8)。
+
+也可以参考 [1Panel App Store Skills](https://github.com/1Panel-dev/1Panel-appstore-skills)，其中包含 1Panel 本地应用包的打包规范、模板和校验步骤。
+
+## 维护校验
+
+修改应用模板或 README 后运行：
 
 ```bash
 python scripts/validate-appstore.py
@@ -205,6 +153,6 @@ python scripts/sync-readme-app-table.py --check
 python scripts/check-updates.py --no-fail
 ```
 
-## 反馈
+## 问题反馈
 
-如发现配置错误或需要调整应用，请在 [Issues](https://github.com/Elykia093/appstore/issues) 反馈。1Panel 本体问题请前往 [1Panel 主项目](https://github.com/1Panel-dev/1Panel/issues)。
+如发现本仓库模板配置错误或需要调整应用，请在 [本仓库 Issues](https://github.com/Elykia093/appstore/issues) 反馈。1Panel 本体问题请前往 [1Panel 主项目](https://github.com/1Panel-dev/1Panel/issues)。
