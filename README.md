@@ -109,7 +109,7 @@ LX Music 数据同步服务端<br>
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
 | Anheyu | `1.8.21` | `anheyu/pro:1.8.21` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
-| CPA / CLIProxyAPI | `7.2.50` | `eceasy/cli-proxy-api:v7.2.50` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
+| CPA / CLIProxyAPI | `7.2.51` | `eceasy/cli-proxy-api:v7.2.51` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Octopus | `0.9.28` | `bestrui/octopus:v0.9.28` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | Metapi | `1.3.0` | `1467078763/metapi:v1.3.0` | `4000:4000` | `./data:/app/data` |
