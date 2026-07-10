@@ -1,6 +1,6 @@
 services:
   cpa:
-    image: eceasy/cli-proxy-api:v7.2.54@sha256:1f839d8028f741e7325694152996ed476fe50e4c73462c1d2f610da3621b7e58
+    image: eceasy/cli-proxy-api:v7.2.58@sha256:a61e936e72eeff6b87fc293a5d184ba7d3d24d5928317d82ceff08341178bd48
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     environment:
