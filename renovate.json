@@ -20,12 +20,19 @@
       "versioning": "docker"
     },
     {
-      "description": "Keep New API readable without an @sha256 digest in the 1Panel template.",
+      "description": "Treat AxonHub prerelease tags as SemVer instead of Docker compatibility suffixes.",
+      "matchManagers": ["docker-compose"],
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["looplj/axonhub"],
+      "versioning": "loose"
+    },
+    {
+      "description": "Track New API prerelease tags while keeping the 1Panel image readable without an @sha256 digest.",
       "matchManagers": ["docker-compose"],
       "matchDatasources": ["docker"],
       "matchPackageNames": ["calciumion/new-api"],
       "pinDigests": false,
-      "versioning": "docker"
+      "versioning": "loose"
     }
   ]
 }

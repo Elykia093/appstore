@@ -312,6 +312,19 @@ def validate_renovate(validator: Validator) -> None:
         bool(digest_rules),
         "renovate.json must pin docker-compose Docker image digests with docker versioning",
     )
+    axonhub_version_rules = [
+        (index, rule)
+        for index, rule in enumerate(package_rules or [])
+        if isinstance(rule, dict)
+        and rule.get("matchManagers") == ["docker-compose"]
+        and rule.get("matchDatasources") == ["docker"]
+        and "looplj/axonhub" in rule.get("matchPackageNames", [])
+        and rule.get("versioning") == "loose"
+    ]
+    validator.require(
+        bool(axonhub_version_rules),
+        "renovate.json must use loose versioning for looplj/axonhub prerelease tags",
+    )
     new_api_digest_rules = [
         (index, rule)
         for index, rule in enumerate(package_rules or [])
@@ -320,11 +333,17 @@ def validate_renovate(validator: Validator) -> None:
         and rule.get("matchDatasources") == ["docker"]
         and "calciumion/new-api" in rule.get("matchPackageNames", [])
         and rule.get("pinDigests") is False
+        and rule.get("versioning") == "loose"
     ]
     validator.require(
         bool(new_api_digest_rules),
-        "renovate.json must keep calciumion/new-api unpinned",
+        "renovate.json must keep calciumion/new-api unpinned with loose versioning",
     )
+    if digest_rules and axonhub_version_rules:
+        validator.require(
+            axonhub_version_rules[-1][0] > digest_rules[-1][0],
+            "renovate.json looplj/axonhub loose versioning rule must appear after the general Docker rule",
+        )
     if digest_rules and new_api_digest_rules:
         validator.require(
             new_api_digest_rules[-1][0] > digest_rules[-1][0],
