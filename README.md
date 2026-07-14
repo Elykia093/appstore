@@ -60,7 +60,7 @@
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | Metapi | `1.3.0` | `1467078763/metapi:v1.3.0` | `4000:4000` | `./data:/app/data` |
 | New API | `1.0.0-rc.21-arm64` | `calciumion/new-api:v1.0.0-rc.21-arm64` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
-| AxonHub | `1.0.0-beta4` | `looplj/axonhub:v1.0.0-beta4` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
+| AxonHub | `1.0.0-beta5-arm64` | `looplj/axonhub:v1.0.0-beta5-arm64` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
 | LX Sync Server | `1.9.4` | `ghcr.io/xcq0607/lxserver:v1.9.4` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
