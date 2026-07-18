@@ -4,17 +4,20 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import http.client
 import importlib.util
 import json
 import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +32,14 @@ MANIFEST_ACCEPT = ", ".join(
         "application/vnd.docker.distribution.manifest.v2+json",
     ]
 )
+APP_DISPLAY_NAMES = {
+    "anheyu": "Anheyu",
+    "axonhub": "AxonHub",
+    "cpa": "CLIProxyAPI",
+    "lsky": "Lsky Pro",
+    "lx-sync-server": "LX Sync Server",
+    "new-api": "New API",
+}
 
 
 @dataclass
@@ -248,11 +259,233 @@ def render_markdown(statuses: list[UpdateStatus]) -> str:
     return "\n".join(lines)
 
 
+def changed_statuses(statuses: list[UpdateStatus]) -> list[UpdateStatus]:
+    return [status for status in statuses if not status.error and not status.ok]
+
+
+def update_signature(status: UpdateStatus) -> str:
+    payload = json.dumps(
+        {
+            "app": status.app,
+            "current_version": status.current_version,
+            "latest_version": status.latest_version,
+            "pinned_digest": status.pinned_digest,
+            "remote_digest": status.remote_digest,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def notification_state(statuses: list[UpdateStatus]) -> dict[str, str]:
+    return {status.app: update_signature(status) for status in changed_statuses(statuses)}
+
+
+def read_notification_state(path: Path | None) -> dict[str, str]:
+    if path is None or not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict) or payload.get("version") != 1:
+        return {}
+    updates = payload.get("updates")
+    if not isinstance(updates, dict):
+        return {}
+    return {
+        str(app): signature
+        for app, signature in updates.items()
+        if isinstance(app, str) and isinstance(signature, str)
+    }
+
+
+def write_notification_state(path: Path | None, state: dict[str, str]) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f"{path.name}.tmp")
+    temporary.write_text(
+        json.dumps({"version": 1, "updates": state}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def clear_notification_state(path: Path | None) -> None:
+    if path is not None and path.exists():
+        path.unlink()
+
+
+def render_telegram_message(
+    statuses: list[UpdateStatus],
+    repository: str = "",
+    run_id: str = "",
+) -> str:
+    updates = changed_statuses(statuses)
+    lines = ["1Panel 应用更新提醒", ""]
+
+    for status in updates:
+        name = APP_DISPLAY_NAMES.get(status.app, status.app)
+        lines.append(name)
+        if status.current_version != status.latest_version:
+            lines.append(f"版本: {status.current_version} -> {status.latest_version}")
+        if status.pinned_digest and status.pinned_digest != status.remote_digest:
+            lines.append("镜像摘要: 已变化")
+        lines.append(f"当前镜像: {status.image}")
+        lines.append("")
+
+    if repository and run_id:
+        lines.append(f"检查详情: https://github.com/{repository}/actions/runs/{run_id}")
+    return "\n".join(lines).rstrip()
+
+
+def send_telegram_message(
+    token: str,
+    chat_id: str,
+    message: str,
+    message_thread_id: str = "",
+) -> None:
+    body: dict[str, Any] = {
+        "chat_id": chat_id,
+        "text": message,
+        "link_preview_options": {"is_disabled": True},
+    }
+    if message_thread_id:
+        try:
+            body["message_thread_id"] = int(message_thread_id)
+        except ValueError as exc:
+            raise RuntimeError("TELEGRAM_MESSAGE_THREAD_ID must be an integer") from exc
+
+    payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "appstore-update-checker",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Telegram API request failed with HTTP {exc.code}") from None
+    except (TimeoutError, urllib.error.URLError) as exc:
+        raise RuntimeError(f"Telegram API request failed: {type(exc).__name__}") from None
+    except http.client.InvalidURL:
+        raise RuntimeError("Telegram API request could not be sent") from None
+    except json.JSONDecodeError:
+        raise RuntimeError("Telegram API returned invalid JSON") from None
+
+    if not isinstance(result, dict) or result.get("ok") is not True:
+        raise RuntimeError("Telegram API rejected the notification")
+
+
+def notify_telegram(
+    statuses: list[UpdateStatus],
+    env: Mapping[str, str] | None = None,
+) -> bool:
+    environment = os.environ if env is None else env
+    token = environment.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = environment.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        if token or chat_id:
+            raise RuntimeError("Telegram notification requires both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+
+    state_value = environment.get("TELEGRAM_STATE_FILE", "")
+    state_path = Path(state_value) if state_value else None
+    updates = changed_statuses(statuses)
+    previous_state = read_notification_state(state_path)
+    current_state = notification_state(updates)
+    for status in statuses:
+        if status.error and status.app in previous_state:
+            current_state[status.app] = previous_state[status.app]
+
+    if not updates:
+        if current_state:
+            write_notification_state(state_path, current_state)
+        else:
+            clear_notification_state(state_path)
+        print("Telegram notification skipped: no app updates.")
+        return False
+
+    pending_updates = [
+        status
+        for status in updates
+        if previous_state.get(status.app) != current_state[status.app]
+    ]
+    if not pending_updates:
+        write_notification_state(state_path, current_state)
+        print("Telegram notification skipped: updates were already notified.")
+        return False
+    if not token:
+        print("Telegram notification skipped: Telegram secrets are not configured.")
+        return False
+
+    message = render_telegram_message(
+        pending_updates,
+        repository=environment.get("GITHUB_REPOSITORY", ""),
+        run_id=environment.get("GITHUB_RUN_ID", ""),
+    )
+    send_telegram_message(
+        token,
+        chat_id,
+        message,
+        message_thread_id=environment.get("TELEGRAM_MESSAGE_THREAD_ID", ""),
+    )
+    write_notification_state(state_path, current_state)
+    print(f"Telegram notification sent for {len(pending_updates)} app(s).")
+    return True
+
+
+def send_telegram_test(env: Mapping[str, str] | None = None) -> None:
+    environment = os.environ if env is None else env
+    token = environment.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = environment.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        raise RuntimeError("Telegram test requires both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+
+    lines = ["1Panel 应用更新通知测试", "", "Telegram Bot 配置正常。"]
+    repository = environment.get("GITHUB_REPOSITORY", "")
+    run_id = environment.get("GITHUB_RUN_ID", "")
+    if repository and run_id:
+        lines.extend(["", f"检查详情: https://github.com/{repository}/actions/runs/{run_id}"])
+    send_telegram_message(
+        token,
+        chat_id,
+        "\n".join(lines),
+        message_thread_id=environment.get("TELEGRAM_MESSAGE_THREAD_ID", ""),
+    )
+    print("Telegram test notification sent.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     parser.add_argument("--no-fail", action="store_true", help="exit 0 even when stale apps are found")
+    parser.add_argument(
+        "--notify-telegram",
+        action="store_true",
+        help="send a Telegram notification when app versions or digests are stale",
+    )
+    parser.add_argument(
+        "--telegram-test",
+        action="store_true",
+        help="send a Telegram test notification regardless of app update status",
+    )
     args = parser.parse_args()
+
+    if args.json and (args.notify_telegram or args.telegram_test):
+        parser.error("--json cannot be combined with Telegram notification options")
+    if args.notify_telegram and args.telegram_test:
+        parser.error("--notify-telegram and --telegram-test are mutually exclusive")
+    if args.telegram_test:
+        send_telegram_test()
+        return 0
 
     resolver = load_resolver()
     statuses: list[UpdateStatus] = []
@@ -278,6 +511,9 @@ def main() -> int:
         print(json.dumps([status.__dict__ for status in statuses], ensure_ascii=False, indent=2))
     else:
         print(render_markdown(statuses))
+
+    if args.notify_telegram:
+        notify_telegram(statuses)
 
     failed = [status for status in statuses if not status.ok]
     if failed and not args.no_fail:

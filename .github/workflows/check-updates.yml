@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: "30 1 * * *"
   workflow_dispatch:
+    inputs:
+      send_test_notification:
+        description: "Send a Telegram test notification"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: check-app-updates
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -11,6 +21,7 @@ permissions:
 jobs:
   check-updates:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -20,9 +31,28 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Restore Telegram notification state
+        uses: actions/cache@v4
+        with:
+          path: .cache/telegram-notification
+          key: telegram-update-state-${{ github.run_id }}
+          restore-keys: |
+            telegram-update-state-
+
       - name: Check upstream releases and registry digests
         env:
           GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
+          TELEGRAM_STATE_FILE: .cache/telegram-notification/state.json
+          TELEGRAM_TEST_NOTIFICATION: ${{ inputs.send_test_notification }}
         run: |
           set -o pipefail
-          python scripts/check-updates.py --no-fail | tee "$GITHUB_STEP_SUMMARY"
+          args=(--no-fail)
+          if [[ "$TELEGRAM_TEST_NOTIFICATION" == "true" ]]; then
+            args+=(--telegram-test)
+          else
+            args+=(--notify-telegram)
+          fi
+          python scripts/check-updates.py "${args[@]}" | tee "$GITHUB_STEP_SUMMARY"

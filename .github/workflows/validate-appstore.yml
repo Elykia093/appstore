@@ -14,6 +14,7 @@ on:
       - "scripts/check-updates.py"
       - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
+      - "tests/**"
       - ".github/workflows/**"
   pull_request:
     paths:
@@ -26,6 +27,7 @@ on:
       - "scripts/check-updates.py"
       - "scripts/sync-app-version-directories.py"
       - "scripts/sync-readme-app-table.py"
+      - "tests/**"
       - ".github/workflows/**"
   workflow_dispatch:
 
@@ -58,6 +60,9 @@ jobs:
 
       - name: Check README app table sync
         run: python scripts/sync-readme-app-table.py --check
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -p "test_*.py"
 
       - name: Compile validation helpers
         run: python -m py_compile scripts/validate-appstore.py scripts/resolve-app-version.py scripts/check-updates.py scripts/sync-app-version-directories.py scripts/sync-readme-app-table.py
