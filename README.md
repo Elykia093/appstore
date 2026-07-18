@@ -1,6 +1,6 @@
 # 1Panel 私有应用商店
 
-本仓库是面向个人使用的 [1Panel](https://github.com/1Panel-dev/1Panel) 本地应用商店，包含当前需要维护的 8 个应用模板，可同步到 1Panel 的本地应用目录后安装使用。
+本仓库是面向个人使用的 [1Panel](https://github.com/1Panel-dev/1Panel) 本地应用商店，包含当前需要维护的 6 个应用模板，可同步到 1Panel 的本地应用目录后安装使用。
 
 本仓库基于 [1Panel 官方应用商店](https://github.com/1Panel-dev/appstore) 的目录结构整理，不是官方应用源。安装前请自行确认镜像来源、端口、持久化目录和安全风险。
 
@@ -17,10 +17,8 @@
 | 应用 | 类型 | 项目/镜像来源 | 存储口径 |
 | --- | --- | --- | --- |
 | [Anheyu](./apps/anheyu/README.md) | 博客与内容管理 | [项目来源](https://github.com/anzhiyu-c/anheyu-app) | PostgreSQL + Redis |
-| [CPA / CLIProxyAPI](./apps/cpa/README.md) | AI CLI 代理 | [项目来源](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
-| [Octopus](./apps/octopus/README.md) | LLM API 聚合 | [项目来源](https://github.com/bestruirui/octopus) | PostgreSQL |
+| [CLIProxyAPI](./apps/cpa/README.md) | AI CLI 代理 | [项目来源](https://github.com/router-for-me/CLIProxyAPI) | PostgreSQL |
 | [Lsky Pro](./apps/lsky/README.md) | 图床 | [lsky-pro 镜像](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro) | PostgreSQL，可选 Redis |
-| [Metapi](./apps/metapi/README.md) | AI 网关聚合 | [项目来源](https://github.com/cita-777/metapi) | 本地数据目录 |
 | [New API](./apps/new-api/README.md) | 大模型网关与 AI 资产管理 | [项目来源](https://github.com/QuantumNous/new-api) | PostgreSQL |
 | [AxonHub](./apps/axonhub/README.md) | AI 开发与管理平台 | [项目来源](https://github.com/looplj/axonhub) | PostgreSQL |
 | [LX Sync Server](./apps/lx-sync-server/README.md) | LX Music 同步服务端 | [项目来源](https://github.com/XCQ0607/lxserver) | 本地数据目录 |
@@ -30,7 +28,6 @@
 ```text
 .
 ├── data.yaml
-├── logo.png
 ├── apps/
 │   └── <app>/
 │       ├── data.yml
@@ -55,12 +52,10 @@
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
 | Anheyu | `1.8.22` | `anheyu/pro:1.8.22` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
-| CPA / CLIProxyAPI | `7.2.86` | `eceasy/cli-proxy-api:v7.2.86` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
-| Octopus | `0.9.28` | `bestrui/octopus:v0.9.28` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
+| CLIProxyAPI | `7.2.86` | `eceasy/cli-proxy-api:v7.2.86` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
-| Metapi | `1.3.0` | `1467078763/metapi:v1.3.0` | `4000:4000` | `./data:/app/data` |
-| New API | `1.0.0-rc.21-arm64` | `calciumion/new-api:v1.0.0-rc.21-arm64` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
-| AxonHub | `1.0.0-beta5-arm64` | `looplj/axonhub:v1.0.0-beta5-arm64` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
+| New API | `1.0.0-rc.21` | `calciumion/new-api:v1.0.0-rc.21` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
+| AxonHub | `1.0.0-beta5` | `looplj/axonhub:v1.0.0-beta5` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
 | LX Sync Server | `1.9.4` | `ghcr.io/xcq0607/lxserver:v1.9.4` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
@@ -134,7 +129,7 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 - `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
 - `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表。
-- `Check App Updates` 每天额外核查 8 个应用的 GitHub latest release 与 registry digest；发现落后时只写入 Job Summary，不把工作流标为失败。
+- `Check App Updates` 每天额外核查 6 个应用的 GitHub latest release 与 registry digest；发现落后时只写入 Job Summary，不把工作流标为失败。
 - `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
 
 如果需要让 Renovate 分支继续自动触发后续工作流，建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。

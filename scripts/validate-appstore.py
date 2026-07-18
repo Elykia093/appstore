@@ -24,9 +24,7 @@ EXPECTED_APPS = {
     "cpa",
     "lsky",
     "lx-sync-server",
-    "metapi",
     "new-api",
-    "octopus",
 }
 
 FLOATING_IMAGE_TAG_APPS = {"lsky"}
@@ -319,11 +317,12 @@ def validate_renovate(validator: Validator) -> None:
         and rule.get("matchManagers") == ["docker-compose"]
         and rule.get("matchDatasources") == ["docker"]
         and "looplj/axonhub" in rule.get("matchPackageNames", [])
+        and rule.get("allowedVersions") == "!/-(?:amd64|arm64)$/"
         and rule.get("versioning") == "loose"
     ]
     validator.require(
         bool(axonhub_version_rules),
-        "renovate.json must use loose versioning for looplj/axonhub prerelease tags",
+        "renovate.json must use loose versioning for looplj/axonhub prerelease tags and exclude architecture-specific tags",
     )
     new_api_digest_rules = [
         (index, rule)
@@ -332,12 +331,13 @@ def validate_renovate(validator: Validator) -> None:
         and rule.get("matchManagers") == ["docker-compose"]
         and rule.get("matchDatasources") == ["docker"]
         and "calciumion/new-api" in rule.get("matchPackageNames", [])
+        and rule.get("allowedVersions") == "!/-(?:amd64|arm64)$/"
         and rule.get("pinDigests") is False
         and rule.get("versioning") == "loose"
     ]
     validator.require(
         bool(new_api_digest_rules),
-        "renovate.json must keep calciumion/new-api unpinned with loose versioning",
+        "renovate.json must keep calciumion/new-api unpinned with loose versioning and exclude architecture-specific tags",
     )
     if digest_rules and axonhub_version_rules:
         validator.require(

@@ -15,12 +15,10 @@ README = ROOT / "README.md"
 APP_LABELS = {
     "anheyu": "Anheyu",
     "axonhub": "AxonHub",
-    "cpa": "CPA / CLIProxyAPI",
+    "cpa": "CLIProxyAPI",
     "lsky": "Lsky Pro",
     "lx-sync-server": "LX Sync Server",
-    "metapi": "Metapi",
     "new-api": "New API",
-    "octopus": "Octopus",
 }
 
 

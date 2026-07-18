@@ -15,9 +15,7 @@ RELEASE_REPOS = {
     "cpa": "router-for-me/CLIProxyAPI",
     "lsky": "lsky-org/lsky-pro",
     "lx-sync-server": "XCQ0607/lxserver",
-    "metapi": "cita-777/metapi",
     "new-api": "QuantumNous/new-api",
-    "octopus": "bestruirui/octopus",
 }
 
 
