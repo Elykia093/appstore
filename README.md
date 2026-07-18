@@ -54,7 +54,7 @@
 
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
-| Anheyu | `1.8.21` | `anheyu/pro:1.8.21` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
+| Anheyu | `1.8.22` | `anheyu/pro:1.8.22` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
 | CPA / CLIProxyAPI | `7.2.81` | `eceasy/cli-proxy-api:v7.2.81` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Octopus | `0.9.28` | `bestrui/octopus:v0.9.28` | `8080:8080` | `./data`，PostgreSQL DSN 由环境变量注入 |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
