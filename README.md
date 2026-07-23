@@ -130,8 +130,8 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 - `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
 - `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表。
 - `Check App Updates` 每天额外核查 6 个应用的 GitHub latest release 与 registry digest；发现新的版本或 digest 变化时写入 Job Summary，并通过 Telegram Bot 发送一次通知，相同更新不会重复推送。
-- Telegram 通知需要配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。群组话题可额外配置 `TELEGRAM_MESSAGE_THREAD_ID`。没有配置时定时检查只跳过通知；只配置 Token 或 Chat ID 其中一个时工作流会明确失败。检查异常只写入 Job Summary，不发送更新通知。
-- 配置完成后可手动运行 `Check App Updates`，勾选 `Send a Telegram test notification` 验证 Bot、Chat ID 和可选话题 ID。
+- Telegram 通知需要配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。没有配置时定时检查只跳过通知；只配置 Token 或 Chat ID 其中一个时工作流会明确失败。检查异常只写入 Job Summary，不发送更新通知。
+- 配置完成后可手动运行 `Check App Updates`，勾选 `Send a Telegram test notification` 验证 Bot 和 Chat ID。
 - `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
 
 如果需要让 Renovate 分支继续自动触发后续工作流，建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。

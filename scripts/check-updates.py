@@ -345,18 +345,12 @@ def send_telegram_message(
     token: str,
     chat_id: str,
     message: str,
-    message_thread_id: str = "",
 ) -> None:
     body: dict[str, Any] = {
         "chat_id": chat_id,
         "text": message,
         "link_preview_options": {"is_disabled": True},
     }
-    if message_thread_id:
-        try:
-            body["message_thread_id"] = int(message_thread_id)
-        except ValueError as exc:
-            raise RuntimeError("TELEGRAM_MESSAGE_THREAD_ID must be an integer") from exc
 
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
@@ -435,7 +429,6 @@ def notify_telegram(
         token,
         chat_id,
         message,
-        message_thread_id=environment.get("TELEGRAM_MESSAGE_THREAD_ID", ""),
     )
     write_notification_state(state_path, current_state)
     print(f"Telegram notification sent for {len(pending_updates)} app(s).")
@@ -458,7 +451,6 @@ def send_telegram_test(env: Mapping[str, str] | None = None) -> None:
         token,
         chat_id,
         "\n".join(lines),
-        message_thread_id=environment.get("TELEGRAM_MESSAGE_THREAD_ID", ""),
     )
     print("Telegram test notification sent.")
 

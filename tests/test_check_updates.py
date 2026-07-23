@@ -72,7 +72,6 @@ class TelegramNotificationTests(unittest.TestCase):
         env = {
             "TELEGRAM_BOT_TOKEN": "test-token",
             "TELEGRAM_CHAT_ID": "-100123",
-            "TELEGRAM_MESSAGE_THREAD_ID": "42",
             "GITHUB_REPOSITORY": "owner/repo",
             "GITHUB_RUN_ID": "123",
         }
@@ -83,8 +82,11 @@ class TelegramNotificationTests(unittest.TestCase):
         self.assertTrue(sent)
         request = urlopen.call_args.args[0]
         payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(
+            set(payload),
+            {"chat_id", "text", "link_preview_options"},
+        )
         self.assertEqual(payload["chat_id"], "-100123")
-        self.assertEqual(payload["message_thread_id"], 42)
         self.assertIn("7.2.76 -> 7.2.77", payload["text"])
         self.assertNotIn("test-token", output.getvalue())
 
@@ -136,19 +138,21 @@ class TelegramNotificationTests(unittest.TestCase):
             state = json.loads(state_path.read_text(encoding="utf-8"))
             self.assertEqual(state["updates"], {"cpa": "notified-signature"})
 
-    def test_telegram_test_notification_supports_thread(self):
+    def test_telegram_test_notification_sends_expected_payload(self):
         response = io.BytesIO(b'{"ok": true}')
         env = {
             "TELEGRAM_BOT_TOKEN": "test-token",
             "TELEGRAM_CHAT_ID": "-100123",
-            "TELEGRAM_MESSAGE_THREAD_ID": "42",
         }
         with patch.object(check_updates.urllib.request, "urlopen", return_value=response) as urlopen:
             check_updates.send_telegram_test(env)
 
         request = urlopen.call_args.args[0]
         payload = json.loads(request.data.decode("utf-8"))
-        self.assertEqual(payload["message_thread_id"], 42)
+        self.assertEqual(
+            set(payload),
+            {"chat_id", "text", "link_preview_options"},
+        )
         self.assertIn("配置正常", payload["text"])
 
     def test_http_error_does_not_expose_bot_token(self):
