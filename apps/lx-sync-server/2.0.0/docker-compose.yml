@@ -1,6 +1,6 @@
 services:
   lx-sync-server:
-    image: ghcr.io/xcq0607/lxserver:v2.0.0@sha256:847f303ac1c29cc44e2c1a64b99ca038083e645850855452ac320a9df21e0ed8
+    image: ghcr.io/xcq0607/lxserver:v2.0.0@sha256:f8332c4e472a8156bd23c6c6605c170b5bec6978778690705fb3a4432feb6f20
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     ports:
