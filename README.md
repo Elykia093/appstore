@@ -134,7 +134,7 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 - 配置完成后可手动运行 `Check App Updates`，勾选 `Send a Telegram test notification` 验证 Bot 和 Chat ID。
 - `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
 
-自动更新必须配置 `MERGE_ADMIN_TOKEN`，用于推送 Renovate 分支、按分支保护规则普通合并 PR，并显式触发下一轮 Renovate。可另外配置 `RENOVATE_TOKEN` 创建更新分支；只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。
+自动更新必须配置 `MERGE_ADMIN_TOKEN`，用于推送 Renovate 分支并按分支保护规则普通合并 PR；工作流使用自身的 `GITHUB_TOKEN` 显式触发下一轮 Renovate。可另外配置 `RENOVATE_TOKEN` 创建更新分支；只使用默认 `GITHUB_TOKEN` 推送 Renovate 分支时，GitHub 会抑制后续工作流触发。
 
 ## 创建本地应用
 

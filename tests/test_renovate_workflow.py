@@ -69,9 +69,14 @@ class RenovateWorkflowTests(unittest.TestCase):
         self.assertIn("PR has conflicts; leaving it open", merge_script)
 
     def test_successful_merge_dispatches_next_renovate_run(self):
-        merge_script = self.step("Rebase to latest main and merge PR")["run"]
+        merge_step = self.step("Rebase to latest main and merge PR")
+        merge_script = merge_step["run"]
 
-        self.assertIn("gh workflow run renovate.yml --ref main", merge_script)
+        self.assertEqual(merge_step["env"]["WORKFLOW_TOKEN"], "${{ github.token }}")
+        self.assertIn(
+            'GH_TOKEN="$WORKFLOW_TOKEN" gh workflow run renovate.yml --ref main',
+            merge_script,
+        )
 
     def test_merge_token_is_required_before_transformation(self):
         token_step = self.step("Require merge workflow token")

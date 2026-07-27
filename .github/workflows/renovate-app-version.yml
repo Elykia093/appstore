@@ -61,7 +61,7 @@ jobs:
           HAS_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' }}
         run: |
           if [[ "$HAS_MERGE_TOKEN" != "true" ]]; then
-            echo "MERGE_ADMIN_TOKEN is required for branch updates, normal PR merge, and downstream workflow dispatch."
+            echo "MERGE_ADMIN_TOKEN is required for branch updates and normal PR merge."
             exit 1
           fi
 
@@ -169,10 +169,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN }}
           HAS_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' }}
+          WORKFLOW_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ "$HAS_MERGE_TOKEN" != "true" ]]; then
-            echo "MERGE_ADMIN_TOKEN is required for branch updates, normal PR merge, and downstream workflow dispatch."
+            echo "MERGE_ADMIN_TOKEN is required for branch updates and normal PR merge."
             exit 1
           fi
 
@@ -346,4 +347,4 @@ jobs:
 
           echo "Successfully merged PR #$pr_number."
           echo "Dispatching Renovate to process the next queued update..."
-          gh workflow run renovate.yml --ref main
+          GH_TOKEN="$WORKFLOW_TOKEN" gh workflow run renovate.yml --ref main
