@@ -1,6 +1,6 @@
 services:
   anheyu:
-    image: anheyu/pro:1.8.22@sha256:2e6a76b7fa41cf58aa0df61efb9e730058be7fb826e34c0a0ef836b14e225e35
+    image: anheyu/pro:1.8.23@sha256:d5f9e09fc0db73b3a237b7ee9b632fa2b936b162eb9136bf438addfa60ee9630
     container_name: ${CONTAINER_NAME}
     restart: always
     labels:
