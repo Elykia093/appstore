@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import subprocess
 import sys
@@ -31,7 +32,9 @@ def version_dir(app_dir: Path) -> Path:
         if path.is_dir() and path.name != "__pycache__"
     )
     if len(versions) != 1:
-        raise RuntimeError(f"{app_dir.name} must have exactly one version directory, got {[p.name for p in versions]}")
+        raise RuntimeError(
+            f"{app_dir.name} must have exactly one version directory, got {[p.name for p in versions]}"
+        )
     return versions[0]
 
 
@@ -40,7 +43,9 @@ def compose_image(compose_path: Path) -> str:
         stripped = line.strip()
         if stripped.startswith("image:") and "[ignore]" not in stripped:
             return stripped.split("image:", 1)[1].strip().split()[0]
-    raise RuntimeError(f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line")
+    raise RuntimeError(
+        f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line"
+    )
 
 
 def resolve_version(resolver, app: str, image: str, current_version: str) -> str:
@@ -51,29 +56,61 @@ def resolve_version(resolver, app: str, image: str, current_version: str) -> str
     return current_version
 
 
-def main() -> int:
-    resolver = load_resolver()
-    changed = False
+def find_mismatches(resolver) -> list[tuple[Path, Path]]:
+    mismatches: list[tuple[Path, Path]] = []
 
     for app_dir in sorted(path for path in APPS_DIR.iterdir() if path.is_dir()):
         current_dir = version_dir(app_dir)
         image = compose_image(current_dir / "docker-compose.yml")
-        target_version = resolve_version(resolver, app_dir.name, image, current_dir.name)
+        target_version = resolve_version(
+            resolver, app_dir.name, image, current_dir.name
+        )
 
-        if target_version == current_dir.name:
-            continue
+        if target_version != current_dir.name:
+            mismatches.append((current_dir, app_dir / target_version))
 
-        target_dir = app_dir / target_version
+    return mismatches
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="report mismatched version directories without changing files",
+    )
+    args = parser.parse_args()
+
+    resolver = load_resolver()
+    mismatches = find_mismatches(resolver)
+
+    if args.check:
+        if not mismatches:
+            print("App version directories are synchronized")
+            return 0
+        for current_dir, target_dir in mismatches:
+            print(
+                "Version directory mismatch: "
+                f"{current_dir.relative_to(ROOT).as_posix()} should be "
+                f"{target_dir.relative_to(ROOT).as_posix()}",
+                file=sys.stderr,
+            )
+        return 1
+
+    for current_dir, target_dir in mismatches:
         if target_dir.exists():
-            raise RuntimeError(f"Target version directory already exists: {target_dir.relative_to(ROOT).as_posix()}")
+            raise RuntimeError(
+                f"Target version directory already exists: {target_dir.relative_to(ROOT).as_posix()}"
+            )
 
-        print(f"Renaming {current_dir.relative_to(ROOT).as_posix()} to {target_dir.relative_to(ROOT).as_posix()}")
+        print(
+            f"Renaming {current_dir.relative_to(ROOT).as_posix()} to {target_dir.relative_to(ROOT).as_posix()}"
+        )
         current_dir.rename(target_dir)
-        changed = True
 
     subprocess.run([sys.executable, str(README_SYNC)], check=True)
 
-    if changed:
+    if mismatches:
         print("App version directories synchronized")
     else:
         print("App version directories already synchronized")

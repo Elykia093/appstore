@@ -128,13 +128,13 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 本仓库使用 Renovate 和 GitHub Actions 维护镜像与版本目录：
 
 - `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
-- `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表。
-- `Check App Updates` 每天额外核查 6 个应用的 GitHub latest release 与 registry digest；发现新的版本或 digest 变化时写入 Job Summary，并通过 Telegram Bot 发送一次通知，相同更新不会重复推送。
-- Telegram 通知需要配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。没有配置时定时检查只跳过通知；只配置 Token 或 Chat ID 其中一个时工作流会明确失败。检查异常只写入 Job Summary，不发送更新通知。
+- `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表，等待 `validate` 成功后普通合并，并继续处理下一个串行更新。
+- `Check App Updates` 在应用更新合入 `main` 后立即发送 Telegram 成功通知；每天还会核查 6 个应用的 GitHub latest release 与 registry digest，并持续发送 stale 或检查失败摘要。
+- Telegram 通知需要同时配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。任一 Secret 缺失、检查异常或通知发送失败都会让工作流明确失败。
 - 配置完成后可手动运行 `Check App Updates`，勾选 `Send a Telegram test notification` 验证 Bot 和 Chat ID。
 - `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
 
-如果需要让 Renovate 分支继续自动触发后续工作流，建议配置 `RENOVATE_TOKEN` 或 `MERGE_ADMIN_TOKEN`。只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。
+自动更新必须配置 `MERGE_ADMIN_TOKEN`，用于推送 Renovate 分支、按分支保护规则普通合并 PR，并显式触发下一轮 Renovate。可另外配置 `RENOVATE_TOKEN` 创建更新分支；只使用默认 `GITHUB_TOKEN` 时，GitHub 会抑制由该 token 推送分支后的部分工作流触发。
 
 ## 创建本地应用
 
@@ -149,7 +149,7 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 ```bash
 python scripts/validate-appstore.py
 python scripts/sync-readme-app-table.py --check
-python scripts/check-updates.py --no-fail
+python scripts/check-updates.py --allow-stale
 ```
 
 ## 问题反馈

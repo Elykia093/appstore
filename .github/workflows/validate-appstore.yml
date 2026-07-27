@@ -49,11 +49,8 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install --disable-pip-version-check PyYAML
 
-      - name: Normalize Renovate PR app versions
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python scripts/sync-app-version-directories.py
+      - name: Check app version directories
+        run: python scripts/sync-app-version-directories.py --check
 
       - name: Validate app store metadata
         run: python scripts/validate-appstore.py

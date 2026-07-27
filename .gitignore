@@ -11,5 +11,9 @@
 
 .claude/
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Local secrets
 .env
