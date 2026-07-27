@@ -1,6 +1,11 @@
 name: Check App Updates
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/**"
   schedule:
     - cron: "30 1 * * *"
   workflow_dispatch:
@@ -25,33 +30,40 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
-      - name: Restore Telegram notification state
-        uses: actions/cache@v4
-        with:
-          path: .cache/telegram-notification
-          key: telegram-update-state-${{ github.run_id }}
-          restore-keys: |
-            telegram-update-state-
-
       - name: Check upstream releases and registry digests
+        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_STATE_FILE: .cache/telegram-notification/state.json
           TELEGRAM_TEST_NOTIFICATION: ${{ inputs.send_test_notification }}
         run: |
           set -o pipefail
-          args=(--no-fail)
+          args=(--allow-stale)
           if [[ "$TELEGRAM_TEST_NOTIFICATION" == "true" ]]; then
             args+=(--telegram-test)
           else
             args+=(--notify-telegram)
           fi
           python scripts/check-updates.py "${args[@]}" | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: Notify merged app updates
+        if: github.event_name == 'push'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          python scripts/check-updates.py \
+            --notify-merged \
+            --before-sha "$BEFORE_SHA" \
+            --after-sha "$AFTER_SHA"

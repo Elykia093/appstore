@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import http.client
 import importlib.util
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APPS_DIR = ROOT / "apps"
 RESOLVER_PATH = ROOT / "scripts" / "resolve-app-version.py"
 IMAGE_RE = re.compile(r"^\s*image:\s*([^ #]+)", re.MULTILINE)
+COMMIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 MANIFEST_ACCEPT = ", ".join(
     [
         "application/vnd.oci.image.index.v1+json",
@@ -61,6 +62,15 @@ class UpdateStatus:
     remote_digest: str
     ok: bool
     error: str = ""
+
+
+@dataclass
+class MergedUpdate:
+    app: str
+    old_version: str
+    new_version: str
+    old_image: str
+    new_image: str
 
 
 def load_resolver() -> Any:
@@ -110,7 +120,9 @@ def latest_release_version(resolver: Any, app: str) -> str:
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    payload = request_json(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers)
+    payload = request_json(
+        f"https://api.github.com/repos/{repo}/releases/latest", headers=headers
+    )
     tag = payload.get("tag_name")
     if not isinstance(tag, str) or not tag:
         raise RuntimeError(f"Latest release for {repo} does not contain tag_name")
@@ -118,16 +130,24 @@ def latest_release_version(resolver: Any, app: str) -> str:
 
 
 def version_dir(app_dir: Path) -> Path:
-    versions = sorted(path for path in app_dir.iterdir() if path.is_dir() and path.name != "__pycache__")
+    versions = sorted(
+        path
+        for path in app_dir.iterdir()
+        if path.is_dir() and path.name != "__pycache__"
+    )
     if len(versions) != 1:
-        raise RuntimeError(f"{app_dir.name} must have exactly one version directory, got {[p.name for p in versions]}")
+        raise RuntimeError(
+            f"{app_dir.name} must have exactly one version directory, got {[p.name for p in versions]}"
+        )
     return versions[0]
 
 
 def compose_image(compose_path: Path) -> str:
     match = IMAGE_RE.search(compose_path.read_text(encoding="utf-8"))
     if not match:
-        raise RuntimeError(f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line")
+        raise RuntimeError(
+            f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line"
+        )
     return match.group(1).strip()
 
 
@@ -171,12 +191,16 @@ def parse_image(image: str) -> ImageRef:
 
 def registry_token(registry: str, repo: str) -> str:
     if registry == "registry-1.docker.io":
-        params = urllib.parse.urlencode({"service": "registry.docker.io", "scope": f"repository:{repo}:pull"})
+        params = urllib.parse.urlencode(
+            {"service": "registry.docker.io", "scope": f"repository:{repo}:pull"}
+        )
         payload = request_json(f"https://auth.docker.io/token?{params}")
         return str(payload.get("token") or "")
 
     if registry == "ghcr.io":
-        params = urllib.parse.urlencode({"service": "ghcr.io", "scope": f"repository:{repo}:pull"})
+        params = urllib.parse.urlencode(
+            {"service": "ghcr.io", "scope": f"repository:{repo}:pull"}
+        )
         payload = request_json(f"https://ghcr.io/token?{params}")
         return str(payload.get("token") or "")
 
@@ -205,7 +229,9 @@ def remote_manifest_digest(image: ImageRef) -> str:
                 continue
             raise
 
-    raise RuntimeError(f"Registry did not return Docker-Content-Digest for {image.display}")
+    raise RuntimeError(
+        f"Registry did not return Docker-Content-Digest for {image.display}"
+    )
 
 
 def check_app(resolver: Any, app_dir: Path) -> UpdateStatus:
@@ -244,7 +270,9 @@ def render_markdown(statuses: list[UpdateStatus]) -> str:
             if not status.pinned_digest:
                 digest_state = "unpinned"
             else:
-                digest_state = "match" if status.pinned_digest == status.remote_digest else "stale"
+                digest_state = (
+                    "match" if status.pinned_digest == status.remote_digest else "stale"
+                )
             state = "ok" if status.ok else "stale"
         lines.append(
             "| {app} | `{current}` | `{latest}` | `{image}` | {digest} | {state} |".format(
@@ -263,59 +291,99 @@ def changed_statuses(statuses: list[UpdateStatus]) -> list[UpdateStatus]:
     return [status for status in statuses if not status.error and not status.ok]
 
 
-def update_signature(status: UpdateStatus) -> str:
-    payload = json.dumps(
-        {
-            "app": status.app,
-            "current_version": status.current_version,
-            "latest_version": status.latest_version,
-            "pinned_digest": status.pinned_digest,
-            "remote_digest": status.remote_digest,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
+def error_statuses(statuses: list[UpdateStatus]) -> list[UpdateStatus]:
+    return [status for status in statuses if status.error]
 
 
-def notification_state(statuses: list[UpdateStatus]) -> dict[str, str]:
-    return {status.app: update_signature(status) for status in changed_statuses(statuses)}
+def telegram_credentials(environment: Mapping[str, str]) -> tuple[str, str]:
+    token = environment.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = environment.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        raise RuntimeError(
+            "Telegram notification requires both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID"
+        )
+    return token, chat_id
 
 
-def read_notification_state(path: Path | None) -> dict[str, str]:
-    if path is None or not path.exists():
-        return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(payload, dict) or payload.get("version") != 1:
-        return {}
-    updates = payload.get("updates")
-    if not isinstance(updates, dict):
-        return {}
-    return {
-        str(app): signature
-        for app, signature in updates.items()
-        if isinstance(app, str) and isinstance(signature, str)
-    }
+def validate_commit_sha(value: str, option_name: str) -> str:
+    if not COMMIT_SHA_RE.fullmatch(value):
+        raise ValueError(f"{option_name} must be a full 40-character commit SHA")
+    return value.lower()
 
 
-def write_notification_state(path: Path | None, state: dict[str, str]) -> None:
-    if path is None:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.tmp")
-    temporary.write_text(
-        json.dumps({"version": 1, "updates": state}, sort_keys=True) + "\n",
+def git_output(args: list[str], *, allow_missing: bool = False) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
         encoding="utf-8",
+        timeout=30,
     )
-    temporary.replace(path)
+    if result.returncode != 0:
+        if allow_missing:
+            return ""
+        detail = result.stderr.strip() or "unknown git error"
+        raise RuntimeError(f"git {' '.join(args[:2])} failed: {detail}")
+    return result.stdout.strip()
 
 
-def clear_notification_state(path: Path | None) -> None:
-    if path is not None and path.exists():
-        path.unlink()
+def app_version_at(commit: str, app: str) -> str:
+    output = git_output(
+        ["ls-tree", "-d", "--name-only", f"{commit}:apps/{app}"],
+        allow_missing=True,
+    )
+    versions = [line for line in output.splitlines() if line and line != "__pycache__"]
+    if len(versions) > 1:
+        raise RuntimeError(f"apps/{app} has multiple version directories at {commit}")
+    return versions[0] if versions else ""
+
+
+def app_image_at(commit: str, app: str, version: str) -> str:
+    if not version:
+        return ""
+    compose = git_output(["show", f"{commit}:apps/{app}/{version}/docker-compose.yml"])
+    match = IMAGE_RE.search(compose)
+    if not match:
+        raise RuntimeError(
+            f"apps/{app}/{version}/docker-compose.yml does not contain an image line"
+        )
+    return match.group(1).strip()
+
+
+def collect_merged_updates(before_sha: str, after_sha: str) -> list[MergedUpdate]:
+    before_sha = validate_commit_sha(before_sha, "--before-sha")
+    after_sha = validate_commit_sha(after_sha, "--after-sha")
+    changed_files = git_output(
+        ["diff", "--name-only", before_sha, after_sha, "--", "apps"]
+    )
+    apps = sorted(
+        {
+            match.group(1)
+            for path in changed_files.splitlines()
+            if (match := re.match(r"^apps/([^/]+)/", path))
+        }
+    )
+
+    updates: list[MergedUpdate] = []
+    for app in apps:
+        old_version = app_version_at(before_sha, app)
+        new_version = app_version_at(after_sha, app)
+        old_image = app_image_at(before_sha, app, old_version)
+        new_image = app_image_at(after_sha, app, new_version)
+        if old_version == new_version and old_image == new_image:
+            continue
+        updates.append(
+            MergedUpdate(
+                app=app,
+                old_version=old_version,
+                new_version=new_version,
+                old_image=old_image,
+                new_image=new_image,
+            )
+        )
+    return updates
 
 
 def render_telegram_message(
@@ -324,20 +392,62 @@ def render_telegram_message(
     run_id: str = "",
 ) -> str:
     updates = changed_statuses(statuses)
-    lines = ["1Panel 应用更新提醒", ""]
+    errors = error_statuses(statuses)
+    lines = ["1Panel 应用更新检查", ""]
 
-    for status in updates:
-        name = APP_DISPLAY_NAMES.get(status.app, status.app)
-        lines.append(name)
-        if status.current_version != status.latest_version:
-            lines.append(f"版本: {status.current_version} -> {status.latest_version}")
-        if status.pinned_digest and status.pinned_digest != status.remote_digest:
-            lines.append("镜像摘要: 已变化")
-        lines.append(f"当前镜像: {status.image}")
-        lines.append("")
+    if updates:
+        lines.extend(["待更新", ""])
+        for status in updates:
+            name = APP_DISPLAY_NAMES.get(status.app, status.app)
+            lines.append(name)
+            if status.current_version != status.latest_version:
+                lines.append(
+                    f"版本: {status.current_version} -> {status.latest_version}"
+                )
+            if status.pinned_digest and status.pinned_digest != status.remote_digest:
+                lines.append("镜像摘要: 已变化")
+            lines.append(f"当前镜像: {status.image}")
+            lines.append("")
+
+    if errors:
+        lines.extend(["检查失败", ""])
+        for status in errors:
+            name = APP_DISPLAY_NAMES.get(status.app, status.app)
+            lines.extend([name, status.error, ""])
 
     if repository and run_id:
         lines.append(f"检查详情: https://github.com/{repository}/actions/runs/{run_id}")
+    return "\n".join(lines).rstrip()
+
+
+def render_merged_message(
+    updates: list[MergedUpdate],
+    repository: str = "",
+    after_sha: str = "",
+    run_id: str = "",
+) -> str:
+    lines = ["1Panel 应用更新完成", ""]
+    for update in updates:
+        name = APP_DISPLAY_NAMES.get(update.app, update.app)
+        lines.append(name)
+        if (
+            update.old_version
+            and update.new_version
+            and update.old_version != update.new_version
+        ):
+            lines.append(f"版本: {update.old_version} -> {update.new_version}")
+        elif not update.old_version:
+            lines.append(f"版本: 新增 {update.new_version}")
+        elif not update.new_version:
+            lines.append(f"版本: 移除 {update.old_version}")
+        elif update.old_image != update.new_image:
+            lines.append("镜像摘要: 已更新")
+        lines.append("")
+
+    if repository and after_sha:
+        lines.append(f"提交: https://github.com/{repository}/commit/{after_sha}")
+    if repository and run_id:
+        lines.append(f"通知详情: https://github.com/{repository}/actions/runs/{run_id}")
     return "\n".join(lines).rstrip()
 
 
@@ -367,9 +477,13 @@ def send_telegram_message(
         with urllib.request.urlopen(request, timeout=30) as response:
             result = json.load(response)
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"Telegram API request failed with HTTP {exc.code}") from None
+        raise RuntimeError(
+            f"Telegram API request failed with HTTP {exc.code}"
+        ) from None
     except (TimeoutError, urllib.error.URLError) as exc:
-        raise RuntimeError(f"Telegram API request failed: {type(exc).__name__}") from None
+        raise RuntimeError(
+            f"Telegram API request failed: {type(exc).__name__}"
+        ) from None
     except http.client.InvalidURL:
         raise RuntimeError("Telegram API request could not be sent") from None
     except json.JSONDecodeError:
@@ -384,44 +498,15 @@ def notify_telegram(
     env: Mapping[str, str] | None = None,
 ) -> bool:
     environment = os.environ if env is None else env
-    token = environment.get("TELEGRAM_BOT_TOKEN", "")
-    chat_id = environment.get("TELEGRAM_CHAT_ID", "")
-    if not token or not chat_id:
-        if token or chat_id:
-            raise RuntimeError("Telegram notification requires both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
-
-    state_value = environment.get("TELEGRAM_STATE_FILE", "")
-    state_path = Path(state_value) if state_value else None
+    token, chat_id = telegram_credentials(environment)
     updates = changed_statuses(statuses)
-    previous_state = read_notification_state(state_path)
-    current_state = notification_state(updates)
-    for status in statuses:
-        if status.error and status.app in previous_state:
-            current_state[status.app] = previous_state[status.app]
-
-    if not updates:
-        if current_state:
-            write_notification_state(state_path, current_state)
-        else:
-            clear_notification_state(state_path)
-        print("Telegram notification skipped: no app updates.")
-        return False
-
-    pending_updates = [
-        status
-        for status in updates
-        if previous_state.get(status.app) != current_state[status.app]
-    ]
-    if not pending_updates:
-        write_notification_state(state_path, current_state)
-        print("Telegram notification skipped: updates were already notified.")
-        return False
-    if not token:
-        print("Telegram notification skipped: Telegram secrets are not configured.")
+    errors = error_statuses(statuses)
+    if not updates and not errors:
+        print("Telegram notification skipped: no stale apps or check errors.")
         return False
 
     message = render_telegram_message(
-        pending_updates,
+        statuses,
         repository=environment.get("GITHUB_REPOSITORY", ""),
         run_id=environment.get("GITHUB_RUN_ID", ""),
     )
@@ -430,23 +515,46 @@ def notify_telegram(
         chat_id,
         message,
     )
-    write_notification_state(state_path, current_state)
-    print(f"Telegram notification sent for {len(pending_updates)} app(s).")
+    print(
+        f"Telegram notification sent for {len(updates)} stale app(s) and {len(errors)} error(s)."
+    )
+    return True
+
+
+def notify_merged_updates(
+    before_sha: str,
+    after_sha: str,
+    env: Mapping[str, str] | None = None,
+) -> bool:
+    environment = os.environ if env is None else env
+    token, chat_id = telegram_credentials(environment)
+    updates = collect_merged_updates(before_sha, after_sha)
+    if not updates:
+        print("Telegram merge notification skipped: no app version or image changes.")
+        return False
+
+    message = render_merged_message(
+        updates,
+        repository=environment.get("GITHUB_REPOSITORY", ""),
+        after_sha=after_sha,
+        run_id=environment.get("GITHUB_RUN_ID", ""),
+    )
+    send_telegram_message(token, chat_id, message)
+    print(f"Telegram merge notification sent for {len(updates)} app(s).")
     return True
 
 
 def send_telegram_test(env: Mapping[str, str] | None = None) -> None:
     environment = os.environ if env is None else env
-    token = environment.get("TELEGRAM_BOT_TOKEN", "")
-    chat_id = environment.get("TELEGRAM_CHAT_ID", "")
-    if not token or not chat_id:
-        raise RuntimeError("Telegram test requires both TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+    token, chat_id = telegram_credentials(environment)
 
     lines = ["1Panel 应用更新通知测试", "", "Telegram Bot 配置正常。"]
     repository = environment.get("GITHUB_REPOSITORY", "")
     run_id = environment.get("GITHUB_RUN_ID", "")
     if repository and run_id:
-        lines.extend(["", f"检查详情: https://github.com/{repository}/actions/runs/{run_id}"])
+        lines.extend(
+            ["", f"检查详情: https://github.com/{repository}/actions/runs/{run_id}"]
+        )
     send_telegram_message(
         token,
         chat_id,
@@ -455,28 +563,65 @@ def send_telegram_test(env: Mapping[str, str] | None = None) -> None:
     print("Telegram test notification sent.")
 
 
+def status_exit_code(statuses: list[UpdateStatus], allow_stale: bool) -> int:
+    if error_statuses(statuses):
+        return 1
+    if changed_statuses(statuses) and not allow_stale:
+        return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
-    parser.add_argument("--no-fail", action="store_true", help="exit 0 even when stale apps are found")
+    parser.add_argument(
+        "--json", action="store_true", help="print machine-readable JSON"
+    )
+    parser.add_argument(
+        "--allow-stale",
+        "--no-fail",
+        dest="allow_stale",
+        action="store_true",
+        help="exit 0 for stale apps; upstream check errors still fail",
+    )
     parser.add_argument(
         "--notify-telegram",
         action="store_true",
-        help="send a Telegram notification when app versions or digests are stale",
+        help="send a Telegram notification for stale apps and upstream check errors",
     )
     parser.add_argument(
         "--telegram-test",
         action="store_true",
         help="send a Telegram test notification regardless of app update status",
     )
+    parser.add_argument(
+        "--notify-merged",
+        action="store_true",
+        help="send a Telegram notification for app changes between two commits",
+    )
+    parser.add_argument(
+        "--before-sha", default="", help="commit before an app update merge"
+    )
+    parser.add_argument(
+        "--after-sha", default="", help="commit after an app update merge"
+    )
     args = parser.parse_args()
 
-    if args.json and (args.notify_telegram or args.telegram_test):
+    notification_modes = sum(
+        (args.notify_telegram, args.telegram_test, args.notify_merged)
+    )
+    if args.json and notification_modes:
         parser.error("--json cannot be combined with Telegram notification options")
-    if args.notify_telegram and args.telegram_test:
-        parser.error("--notify-telegram and --telegram-test are mutually exclusive")
+    if notification_modes > 1:
+        parser.error("Telegram notification options are mutually exclusive")
+    if args.notify_merged and (not args.before_sha or not args.after_sha):
+        parser.error("--notify-merged requires --before-sha and --after-sha")
+    if not args.notify_merged and (args.before_sha or args.after_sha):
+        parser.error("--before-sha and --after-sha require --notify-merged")
     if args.telegram_test:
         send_telegram_test()
+        return 0
+    if args.notify_merged:
+        notify_merged_updates(args.before_sha, args.after_sha)
         return 0
 
     resolver = load_resolver()
@@ -500,23 +645,31 @@ def main() -> int:
             )
 
     if args.json:
-        print(json.dumps([status.__dict__ for status in statuses], ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                [status.__dict__ for status in statuses], ensure_ascii=False, indent=2
+            )
+        )
     else:
         print(render_markdown(statuses))
 
     if args.notify_telegram:
         notify_telegram(statuses)
 
-    failed = [status for status in statuses if not status.ok]
-    if failed and not args.no_fail:
-        print(f"\nUpdate check failed: {len(failed)} app(s) are stale or could not be checked.", file=sys.stderr)
-        return 1
-
-    if failed:
-        print(f"\nUpdate check completed: {len(failed)} app(s) are stale or could not be checked.")
+    stale = changed_statuses(statuses)
+    errors = error_statuses(statuses)
+    result = status_exit_code(statuses, args.allow_stale)
+    if errors:
+        print(
+            f"\nUpdate check failed: {len(errors)} app(s) could not be checked; "
+            f"{len(stale)} app(s) are stale.",
+            file=sys.stderr,
+        )
+    elif stale:
+        print(f"\nUpdate check completed: {len(stale)} app(s) are stale.")
     else:
         print(f"\nUpdate check passed: {len(statuses)} app(s) are current.")
-    return 0
+    return result
 
 
 if __name__ == "__main__":

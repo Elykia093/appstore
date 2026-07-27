@@ -22,6 +22,7 @@ permissions:
 jobs:
   update-app-version:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -32,22 +33,36 @@ jobs:
       - name: Check if triggered by self (prevent circular trigger)
         id: check-circular
         run: |
-          # 检查最后一个 commit 的 author，如果是自己则跳过
           last_author=$(git log -1 --format='%an')
           last_message=$(git log -1 --format='%s')
-          
+
           echo "Last commit author: $last_author"
           echo "Last commit message: $last_message"
-          
-          # 如果是 github-action 自己 commit 的，说明是工作流触发的，跳过避免循环
-          if [[ "$last_author" == "github-action update-app-version" ]] || \
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "Manual resume requested: skip transformation and continue with PR processing."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "merge=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$last_author" == "github-action update-app-version" ]] || \
              [[ "$last_author" == "github-action[bot]" ]] || \
              [[ "$last_message" == *"[auto-version-bump]"* ]]; then
-            echo "⚠️ Skipping: triggered by own commit (preventing circular trigger)"
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping self-generated push to prevent duplicate PR processing."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "merge=false" >> "$GITHUB_OUTPUT"
           else
-            echo "✅ Proceeding: triggered by external commit"
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with Renovate branch transformation and PR processing."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "merge=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require merge workflow token
+        if: steps.check-circular.outputs.merge == 'true'
+        env:
+          HAS_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' }}
+        run: |
+          if [[ "$HAS_MERGE_TOKEN" != "true" ]]; then
+            echo "MERGE_ADMIN_TOKEN is required for branch updates, normal PR merge, and downstream workflow dispatch."
+            exit 1
           fi
 
       - name: Configure git
@@ -147,23 +162,64 @@ jobs:
             git clean -fd
           fi
 
-          git push origin "HEAD:$branch_name" || echo "无内容可推送"
+          git push origin "HEAD:$branch_name"
 
       - name: Rebase to latest main and merge PR
-        if: steps.check-circular.outputs.skip != 'true' && github.ref_name != 'main'
+        if: steps.check-circular.outputs.merge == 'true' && github.ref_name != 'main'
         env:
-          ADMIN_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN }}
-          GH_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' && secrets.MERGE_ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN }}
+          HAS_MERGE_TOKEN: ${{ secrets.MERGE_ADMIN_TOKEN != '' }}
         run: |
-          set -e
+          set -euo pipefail
+          if [[ "$HAS_MERGE_TOKEN" != "true" ]]; then
+            echo "MERGE_ADMIN_TOKEN is required for branch updates, normal PR merge, and downstream workflow dispatch."
+            exit 1
+          fi
+
           branch_name="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
           echo "Current branch: $branch_name"
 
-          # 获取 PR 编号
-          pr_number=$(gh pr list --state open --head "$branch_name" --json number -q '.[0].number')
-          if [ -z "$pr_number" ]; then
-            echo "No PR found for branch $branch_name"
-            exit 0
+          # Renovate pushes the branch before creating the PR. Poll for the PR
+          # and match its head SHA so a previously merged PR that reused this
+          # branch name cannot be mistaken for the current update.
+          current_sha=$(git rev-parse HEAD)
+          max_pr_lookup_attempts=12
+          pr_number=""
+          for pr_lookup_attempt in $(seq 1 "$max_pr_lookup_attempts"); do
+            pr_number=$(gh pr list \
+              --state open \
+              --head "$branch_name" \
+              --limit 20 \
+              --json number,headRefOid \
+              --jq ".[] | select(.headRefOid == \"$current_sha\") | .number" \
+              | head -n 1)
+
+            if [[ -n "$pr_number" ]]; then
+              break
+            fi
+
+            matching_pr_state=$(gh pr list \
+              --state all \
+              --head "$branch_name" \
+              --limit 20 \
+              --json state,mergedAt,headRefOid \
+              --jq ".[] | select(.headRefOid == \"$current_sha\") | if .mergedAt then \"MERGED\" else .state end" \
+              | head -n 1)
+
+            if [[ "$matching_pr_state" == "MERGED" ]]; then
+              echo "PR for $branch_name at $current_sha was already merged."
+              exit 0
+            fi
+
+            if [[ "$pr_lookup_attempt" -lt "$max_pr_lookup_attempts" ]]; then
+              echo "No open PR for $branch_name at $current_sha yet. Waiting for Renovate to create it ($pr_lookup_attempt/$max_pr_lookup_attempts)..."
+              sleep 5
+            fi
+          done
+
+          if [[ -z "$pr_number" ]]; then
+            echo "No open PR appeared for $branch_name at $current_sha after $max_pr_lookup_attempts attempts."
+            exit 1
           fi
 
           echo "Found PR #$pr_number, preparing to merge..."
@@ -195,43 +251,73 @@ jobs:
           echo "Force pushing rebased branch..."
           git push --force-with-lease origin "HEAD:$branch_name"
 
-          # 等待 GitHub 重新计算 mergeable 状态
-          echo "Waiting for GitHub to recalculate mergeable status..."
-          sleep 15
+          head_sha=$(git rev-parse HEAD)
+          echo "Waiting for validate to succeed on $head_sha..."
+          validate_succeeded="false"
+          for check_attempt in $(seq 1 60); do
+            pr_head=$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid')
+            if [[ "$pr_head" != "$head_sha" ]]; then
+              echo "PR head is $pr_head; waiting for GitHub to observe $head_sha ($check_attempt/60)."
+              sleep 10
+              continue
+            fi
 
-          # 检查 mergeable 状态，最多等待 2 分钟
-          max_attempts=12
-          attempt=0
-          while [ $attempt -lt $max_attempts ]; do
-            mergeable=$(gh pr view "$pr_number" --json mergeable -q '.mergeable' 2>/dev/null || echo "UNKNOWN")
-            merge_state_status=$(gh pr view "$pr_number" --json mergeStateStatus -q '.mergeStateStatus' 2>/dev/null || echo "UNKNOWN")
-            echo "Mergeable status: $mergeable, mergeStateStatus: $merge_state_status (attempt $((attempt+1))/$max_attempts)"
-            
-            if [ "$mergeable" = "MERGEABLE" ] && [ "$merge_state_status" != "UNKNOWN" ]; then
-              echo "PR is ready to merge."
-              break
-            fi
-            
-            if [ "$mergeable" = "CONFLICTING" ]; then
-              echo "Warning: PR has conflicts, but proceeding with admin merge..."
-              break
-            fi
-            
-            sleep 10
-            attempt=$((attempt+1))
+            check_state=$(gh pr view "$pr_number" \
+              --json statusCheckRollup \
+              --jq '[.statusCheckRollup[] | select(.name == "validate")][0] | if . == null then "MISSING" elif .status != "COMPLETED" then .status else .conclusion end')
+            echo "validate state: $check_state ($check_attempt/60)"
+
+            case "$check_state" in
+              SUCCESS)
+                validate_succeeded="true"
+                break
+                ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STALE|SKIPPED|NEUTRAL)
+                echo "validate did not succeed on $head_sha."
+                gh pr view "$pr_number" --json url,headRefOid,statusCheckRollup
+                exit 1
+                ;;
+              MISSING|QUEUED|IN_PROGRESS|PENDING|WAITING|REQUESTED|EXPECTED)
+                sleep 10
+                ;;
+              *)
+                echo "Unexpected validate state: $check_state"
+                exit 1
+                ;;
+            esac
           done
 
-          # 合并 PR
-          echo "Merging PR #$pr_number..."
-          head_sha=$(git rev-parse HEAD)
-          merge_flags=(--merge --delete-branch --match-head-commit "$head_sha")
-
-          if [[ -n "${ADMIN_MERGE_TOKEN:-}" ]]; then
-            echo "Using MERGE_ADMIN_TOKEN for administrator merge."
-            merge_flags+=(--admin)
-          else
-            echo "MERGE_ADMIN_TOKEN is not configured; using standard repository token."
+          if [[ "$validate_succeeded" != "true" ]]; then
+            echo "validate did not succeed on $head_sha within 10 minutes."
+            gh pr view "$pr_number" --json url,headRefOid,statusCheckRollup
+            exit 1
           fi
+
+          merge_ready="false"
+          for mergeable_attempt in $(seq 1 12); do
+            mergeable=$(gh pr view "$pr_number" --json mergeable --jq '.mergeable')
+            merge_state_status=$(gh pr view "$pr_number" --json mergeStateStatus --jq '.mergeStateStatus')
+            echo "Mergeable status: $mergeable, mergeStateStatus: $merge_state_status ($mergeable_attempt/12)"
+
+            if [[ "$mergeable" == "CONFLICTING" ]]; then
+              echo "PR has conflicts; leaving it open for manual resolution."
+              exit 1
+            fi
+            if [[ "$mergeable" == "MERGEABLE" && "$merge_state_status" != "UNKNOWN" ]]; then
+              merge_ready="true"
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "$merge_ready" != "true" ]]; then
+            echo "PR did not become mergeable after validate succeeded."
+            gh pr view "$pr_number" --json url,state,mergeable,mergeStateStatus,statusCheckRollup
+            exit 1
+          fi
+
+          echo "Merging PR #$pr_number without bypassing branch protection..."
+          merge_flags=(--merge --delete-branch --match-head-commit "$head_sha")
 
           merged="false"
           for merge_attempt in 1 2 3; do
@@ -258,4 +344,6 @@ jobs:
             exit 1
           fi
 
-          echo "Successfully merged PR #$pr_number!"
+          echo "Successfully merged PR #$pr_number."
+          echo "Dispatching Renovate to process the next queued update..."
+          gh workflow run renovate.yml --ref main
