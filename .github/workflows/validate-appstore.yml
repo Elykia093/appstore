@@ -36,6 +36,9 @@ permissions:
 
 jobs:
   validate:
+    # Renovate opens the PR before the version-directory sync commit exists.
+    # The synchronize event for that exact updated head runs the full gate.
+    if: "${{ github.event_name != 'pull_request' || github.event.action != 'opened' || !startsWith(github.head_ref, 'renovate/') }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
