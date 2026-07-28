@@ -88,6 +88,17 @@ class RenovateWorkflowTests(unittest.TestCase):
 
 
 class SupportingWorkflowTests(unittest.TestCase):
+    def test_initial_renovate_opened_head_skips_transitional_validation(self):
+        workflow = yaml.safe_load(VALIDATE_WORKFLOW.read_text(encoding="utf-8"))
+        condition = workflow["jobs"]["validate"].get("if")
+
+        self.assertEqual(
+            condition,
+            "${{ github.event_name != 'pull_request' || "
+            "github.event.action != 'opened' || "
+            "!startsWith(github.head_ref, 'renovate/') }}",
+        )
+
     def test_renovate_runs_every_four_hours_and_uses_explicit_continuation(self):
         text = RENOVATE_WORKFLOW.read_text(encoding="utf-8")
 
