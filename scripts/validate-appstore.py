@@ -28,7 +28,6 @@ EXPECTED_APPS = {
 }
 
 FLOATING_IMAGE_TAG_APPS = {"lsky"}
-UNPINNED_IMAGE_APPS = {"new-api"}
 ALLOWED_IMPLICIT_ENV = {"CONTAINER_NAME"}
 COMPOSE_VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(?::?[-+?]).*)?\}")
 
@@ -234,16 +233,10 @@ def validate_apps(loaded: dict[Path, Any], root_tags: set[str], validator: Valid
         validator.require(images, f"{rel(compose_path)} has no service images")
         for image in images:
             all_images.append(image)
-            if app in UNPINNED_IMAGE_APPS:
-                validator.require(
-                    "@sha256:" not in image,
-                    f"{rel(compose_path)} image must not include a digest: {image}",
-                )
-            else:
-                validator.require(
-                    "@sha256:" in image,
-                    f"{rel(compose_path)} image is not digest pinned: {image}",
-                )
+            validator.require(
+                "@sha256:" in image,
+                f"{rel(compose_path)} image is not digest pinned: {image}",
+            )
             validator.require(
                 ":" in image_base(image),
                 f"{rel(compose_path)} image must include an explicit tag: {image}",
@@ -324,7 +317,7 @@ def validate_renovate(validator: Validator) -> None:
         bool(axonhub_version_rules),
         "renovate.json must use loose versioning for looplj/axonhub prerelease tags and exclude architecture-specific tags",
     )
-    new_api_digest_rules = [
+    new_api_version_rules = [
         (index, rule)
         for index, rule in enumerate(package_rules or [])
         if isinstance(rule, dict)
@@ -332,22 +325,22 @@ def validate_renovate(validator: Validator) -> None:
         and rule.get("matchDatasources") == ["docker"]
         and "calciumion/new-api" in rule.get("matchPackageNames", [])
         and rule.get("allowedVersions") == "!/-(?:amd64|arm64)$/"
-        and rule.get("pinDigests") is False
+        and rule.get("pinDigests") is True
         and rule.get("versioning") == "loose"
     ]
     validator.require(
-        bool(new_api_digest_rules),
-        "renovate.json must keep calciumion/new-api unpinned with loose versioning and exclude architecture-specific tags",
+        bool(new_api_version_rules),
+        "renovate.json must pin calciumion/new-api digests with loose versioning and exclude architecture-specific tags",
     )
     if digest_rules and axonhub_version_rules:
         validator.require(
             axonhub_version_rules[-1][0] > digest_rules[-1][0],
             "renovate.json looplj/axonhub loose versioning rule must appear after the general Docker rule",
         )
-    if digest_rules and new_api_digest_rules:
+    if digest_rules and new_api_version_rules:
         validator.require(
-            new_api_digest_rules[-1][0] > digest_rules[-1][0],
-            "renovate.json calciumion/new-api unpin rule must appear after the general digest pin rule",
+            new_api_version_rules[-1][0] > digest_rules[-1][0],
+            "renovate.json calciumion/new-api loose versioning rule must appear after the general digest pin rule",
         )
 
 

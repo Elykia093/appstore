@@ -29,12 +29,12 @@
       "versioning": "loose"
     },
     {
-      "description": "Track New API prereleases without architecture-specific tags or an @sha256 digest.",
+      "description": "Track New API prereleases with pinned digests while excluding architecture-specific tags.",
       "matchManagers": ["docker-compose"],
       "matchDatasources": ["docker"],
       "matchPackageNames": ["calciumion/new-api"],
       "allowedVersions": "!/-(?:amd64|arm64)$/",
-      "pinDigests": false,
+      "pinDigests": true,
       "versioning": "loose"
     }
   ]
