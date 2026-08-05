@@ -1,3 +1,5 @@
+import json
+import re
 import unittest
 from pathlib import Path
 
@@ -9,6 +11,9 @@ RENOVATE_APP_WORKFLOW = ROOT / ".github" / "workflows" / "renovate-app-version.y
 RENOVATE_WORKFLOW = ROOT / ".github" / "workflows" / "renovate.yml"
 CHECK_UPDATES_WORKFLOW = ROOT / ".github" / "workflows" / "check-updates.yml"
 VALIDATE_WORKFLOW = ROOT / ".github" / "workflows" / "validate-appstore.yml"
+WORKFLOWS_DIR = ROOT / ".github" / "workflows"
+RENOVATE_CONFIG = ROOT / "renovate.json"
+NEW_API_COMPOSE = ROOT / "apps" / "new-api" / "1.0.0-rc.23" / "docker-compose.yml"
 
 
 class RenovateWorkflowTests(unittest.TestCase):
@@ -43,6 +48,27 @@ class RenovateWorkflowTests(unittest.TestCase):
         self.assertIn(r"select(.headRefOid == \"$current_sha\")", merge_script)
         self.assertIn("Waiting for Renovate to create it", merge_script)
         self.assertIn("No open PR appeared", merge_script)
+
+    def test_original_pr_exists_before_branch_transformation(self):
+        wait_step = self.step("Wait for Renovate to create the original PR")
+        wait_script = wait_step["run"]
+        step_names = [step.get("name") for step in self.steps]
+
+        self.assertEqual(
+            wait_step.get("if"), "steps.check-circular.outputs.skip != 'true'"
+        )
+        self.assertLess(
+            step_names.index("Wait for Renovate to create the original PR"),
+            step_names.index("Run renovate-app-version.sh on updated files"),
+        )
+        self.assertLess(
+            step_names.index("Wait for Renovate to create the original PR"),
+            step_names.index("Commit & Push Changes"),
+        )
+        self.assertIn("original_sha=$(git rev-parse HEAD)", wait_script)
+        self.assertIn(r'select(.headRefOid == \"$original_sha\")', wait_script)
+        self.assertIn("Waiting for Renovate to create it", wait_script)
+        self.assertIn("No open PR appeared", wait_script)
 
     def test_push_failures_are_not_suppressed(self):
         push_script = self.step("Commit & Push Changes")["run"]
@@ -88,6 +114,32 @@ class RenovateWorkflowTests(unittest.TestCase):
 
 
 class SupportingWorkflowTests(unittest.TestCase):
+    def test_all_actions_are_pinned_to_full_commit_shas(self):
+        action_ref = re.compile(r"^\s*uses:\s+[^@\s]+@([^\s#]+)", re.MULTILINE)
+        refs = []
+
+        for workflow_path in sorted(WORKFLOWS_DIR.glob("*.yml")):
+            refs.extend(action_ref.findall(workflow_path.read_text(encoding="utf-8")))
+
+        self.assertTrue(refs)
+        for ref in refs:
+            with self.subTest(ref=ref):
+                self.assertRegex(ref, r"^[0-9a-f]{40}$")
+
+    def test_new_api_is_digest_pinned_in_config_and_compose(self):
+        config = json.loads(RENOVATE_CONFIG.read_text(encoding="utf-8"))
+        new_api_rules = [
+            rule
+            for rule in config["packageRules"]
+            if "calciumion/new-api" in rule.get("matchPackageNames", [])
+        ]
+        compose = yaml.safe_load(NEW_API_COMPOSE.read_text(encoding="utf-8"))
+        image = compose["services"]["new-api"]["image"]
+
+        self.assertEqual(len(new_api_rules), 1)
+        self.assertIs(new_api_rules[0].get("pinDigests"), True)
+        self.assertRegex(image, r"@sha256:[0-9a-f]{64}$")
+
     def test_initial_renovate_opened_head_skips_transitional_validation(self):
         workflow = yaml.safe_load(VALIDATE_WORKFLOW.read_text(encoding="utf-8"))
         condition = workflow["jobs"]["validate"].get("if")
