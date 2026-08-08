@@ -54,7 +54,7 @@
 | Anheyu | `1.8.23` | `anheyu/pro:1.8.23` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
 | CLIProxyAPI | `7.2.121` | `eceasy/cli-proxy-api:v7.2.121` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
-| New API | `1.0.0-rc.23` | `calciumion/new-api:v1.0.0-rc.23` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
+| New API | `1.0.0-rc.24` | `calciumion/new-api:v1.0.0-rc.24` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
 | AxonHub | `1.0.0-beta6` | `looplj/axonhub:v1.0.0-beta6` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
 | LX Sync Server | `2.0.0` | `ghcr.io/xcq0607/lxserver:v2.0.0` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
