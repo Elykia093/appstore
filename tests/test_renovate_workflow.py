@@ -13,7 +13,7 @@ CHECK_UPDATES_WORKFLOW = ROOT / ".github" / "workflows" / "check-updates.yml"
 VALIDATE_WORKFLOW = ROOT / ".github" / "workflows" / "validate-appstore.yml"
 WORKFLOWS_DIR = ROOT / ".github" / "workflows"
 RENOVATE_CONFIG = ROOT / "renovate.json"
-NEW_API_COMPOSE = ROOT / "apps" / "new-api" / "1.0.0-rc.23" / "docker-compose.yml"
+NEW_API_DIR = ROOT / "apps" / "new-api"
 
 
 class RenovateWorkflowTests(unittest.TestCase):
@@ -133,7 +133,17 @@ class SupportingWorkflowTests(unittest.TestCase):
             for rule in config["packageRules"]
             if "calciumion/new-api" in rule.get("matchPackageNames", [])
         ]
-        compose = yaml.safe_load(NEW_API_COMPOSE.read_text(encoding="utf-8"))
+        version_dirs = sorted(
+            path
+            for path in NEW_API_DIR.iterdir()
+            if path.is_dir() and path.name != "__pycache__"
+        )
+
+        self.assertEqual(len(version_dirs), 1)
+
+        compose = yaml.safe_load(
+            (version_dirs[0] / "docker-compose.yml").read_text(encoding="utf-8")
+        )
         image = compose["services"]["new-api"]["image"]
 
         self.assertEqual(len(new_api_rules), 1)
