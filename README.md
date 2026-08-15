@@ -52,7 +52,7 @@
 | 应用 | 1Panel 版本目录 | 镜像 | 默认端口映射 | 持久化与配置 |
 | --- | --- | --- | --- | --- |
 | Anheyu | `1.8.23` | `anheyu/pro:1.8.23` | `8091:8091` | `./data`、`./themes`、`./static`、`./backup` |
-| CLIProxyAPI | `7.2.132` | `eceasy/cli-proxy-api:v7.2.132` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
+| CLIProxyAPI | `7.2.133` | `eceasy/cli-proxy-api:v7.2.133` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | New API | `1.0.0-rc.24` | `calciumion/new-api:v1.0.0-rc.24` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
 | AxonHub | `1.0.0-beta7` | `looplj/axonhub:v1.0.0-beta7` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
