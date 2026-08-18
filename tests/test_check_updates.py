@@ -156,7 +156,7 @@ class TelegramNotificationTests(unittest.TestCase):
                 "eceasy/cpa:v7.2.102",
             ),
             check_updates.MergedUpdate(
-                "lx-sync-server",
+                "axonhub",
                 "2.0.0",
                 "2.0.0",
                 "image@sha256:old",
