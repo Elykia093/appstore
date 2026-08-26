@@ -1,6 +1,6 @@
 services:
   new-api:
-    image: calciumion/new-api:v1.0.0-rc.25@sha256:54a0b10924aa75fa5b5947208b820ced66b6ef4b445b35f122b31d80676aba2b
+    image: calciumion/new-api:v1.0.0-rc.26@sha256:7b82c866e9c0fb02faca7d5068e9d1261e47edf52462d63d9db7b614e7f1027d
     container_name: ${CONTAINER_NAME}
     restart: always
     command: --log-dir /app/logs
