@@ -56,7 +56,7 @@
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | New API | `1.0.0-rc.36` | `calciumion/new-api:v1.0.0-rc.36` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
 | AxonHub | `1.0.0-beta10` | `looplj/axonhub:v1.0.0-beta10` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
-| LX Sync Server | `2.0.1` | `ghcr.io/xcq0607/lxserver:v2.0.1` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
+| LX Sync Server | `2.0.2` | `ghcr.io/xcq0607/lxserver:v2.0.2` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
 
