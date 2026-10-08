@@ -1,6 +1,6 @@
 services:
   axonhub:
-    image: looplj/axonhub:v1.0.0-beta10@sha256:2c71eeaef2955c52ad52d73cfac0c3a568ecc185f436819d5effb0a53e7ccc83
+    image: looplj/axonhub:v1.0.0-beta11@sha256:581c334e7d03f62acdf9f987181c17d18d01f18aca896522e6e826c34038f123
     container_name: ${CONTAINER_NAME}
     restart: always
     environment:
