@@ -55,7 +55,7 @@
 | CLIProxyAPI | `8.0.21` | `eceasy/cli-proxy-api:v8.0.21` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | New API | `1.0.0-rc.42` | `calciumion/new-api:v1.0.0-rc.42` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
-| AxonHub | `1.0.0-beta10` | `looplj/axonhub:v1.0.0-beta10` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
+| AxonHub | `1.0.0-beta11` | `looplj/axonhub:v1.0.0-beta11` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
 | LX Sync Server | `2.1.2` | `ghcr.io/xcq0607/lxserver:v2.1.2` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
