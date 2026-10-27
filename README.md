@@ -1,6 +1,6 @@
 # 1Panel 私有应用商店
 
-本仓库是面向个人使用的 [1Panel](https://github.com/1Panel-dev/1Panel) 本地应用商店，包含当前需要维护的 6 个应用模板，可同步到 1Panel 的本地应用目录后安装使用。
+本仓库是面向个人使用的 [1Panel](https://github.com/1Panel-dev/1Panel) 本地应用商店，包含当前需要维护的 5 个应用模板，可同步到 1Panel 的本地应用目录后安装使用。
 
 本仓库基于 [1Panel 官方应用商店](https://github.com/1Panel-dev/appstore) 的目录结构整理，不是官方应用源。安装前请自行确认镜像来源、端口、持久化目录和安全风险。
 
@@ -21,7 +21,6 @@
 | [Lsky Pro](./apps/lsky/README.md) | 图床 | [lsky-pro 镜像](https://github.com/walrus8364/lsky-pro/pkgs/container/lsky-pro) | PostgreSQL，可选 Redis |
 | [New API](./apps/new-api/README.md) | 大模型网关与 AI 资产管理 | [项目来源](https://github.com/QuantumNous/new-api) | PostgreSQL |
 | [AxonHub](./apps/axonhub/README.md) | AI 开发与管理平台 | [项目来源](https://github.com/looplj/axonhub) | PostgreSQL |
-| [LX Sync Server](./apps/lx-sync-server/README.md) | LX Music 同步服务端 | [项目来源](https://github.com/XCQ0607/lxserver) | 本地数据目录 |
 
 ## 仓库结构
 
@@ -56,7 +55,6 @@
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | New API | `1.0.0-rc.47` | `calciumion/new-api:v1.0.0-rc.47` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
 | AxonHub | `1.0.0-beta11` | `looplj/axonhub:v1.0.0-beta11` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
-| LX Sync Server | `2.1.4` | `ghcr.io/xcq0607/lxserver:v2.1.4` | `9527:9527` | `./data`、`./logs`、`./cache`、`./music`，WebDAV 参数由环境变量注入 |
 
 说明：
 

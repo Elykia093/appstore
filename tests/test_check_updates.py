@@ -156,11 +156,11 @@ class TelegramNotificationTests(unittest.TestCase):
                 "eceasy/cpa:v7.2.102",
             ),
             check_updates.MergedUpdate(
-                "lx-sync-server",
-                "2.0.0",
-                "2.0.0",
-                "image@sha256:old",
-                "image@sha256:new",
+                "new-api",
+                "1.0.0-rc.47",
+                "1.0.0-rc.47",
+                "calciumion/new-api:v1.0.0-rc.47@sha256:old",
+                "calciumion/new-api:v1.0.0-rc.47@sha256:new",
             ),
         ]
 

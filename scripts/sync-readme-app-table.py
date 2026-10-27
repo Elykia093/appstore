@@ -17,7 +17,6 @@ APP_LABELS = {
     "axonhub": "AxonHub",
     "cpa": "CLIProxyAPI",
     "lsky": "Lsky Pro",
-    "lx-sync-server": "LX Sync Server",
     "new-api": "New API",
 }
 
