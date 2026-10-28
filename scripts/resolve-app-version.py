@@ -14,7 +14,6 @@ RELEASE_REPOS = {
     "axonhub": "looplj/axonhub",
     "cpa": "router-for-me/CLIProxyAPI",
     "lsky": "lsky-org/lsky-pro",
-    "lx-sync-server": "XCQ0607/lxserver",
     "new-api": "QuantumNous/new-api",
 }
 

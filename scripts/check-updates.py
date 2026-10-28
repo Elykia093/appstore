@@ -38,7 +38,6 @@ APP_DISPLAY_NAMES = {
     "axonhub": "AxonHub",
     "cpa": "CLIProxyAPI",
     "lsky": "Lsky Pro",
-    "lx-sync-server": "LX Sync Server",
     "new-api": "New API",
 }
 

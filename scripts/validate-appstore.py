@@ -23,7 +23,6 @@ EXPECTED_APPS = {
     "axonhub",
     "cpa",
     "lsky",
-    "lx-sync-server",
     "new-api",
 }
 
