@@ -54,7 +54,7 @@
 | CLIProxyAPI | `8.0.64` | `eceasy/cli-proxy-api:v8.0.64` | `8317:8317` | `./config.yaml`、`./auths`、`./logs` |
 | Lsky Pro | `2.1` | `ghcr.io/walrus8364/lsky-pro:latest` | `8000:80` | `./data:/var/www/html`，PostgreSQL/Redis/Admin/License 由环境变量注入 |
 | New API | `1.0.0-rc.49` | `calciumion/new-api:v1.0.0-rc.49` | `3000:3000` | `./data`、`./logs`，PostgreSQL DSN 由环境变量注入 |
-| AxonHub | `1.0.0-rc1` | `looplj/axonhub:v1.0.0-rc1` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
+| AxonHub | `1.0.0-rc2` | `looplj/axonhub:v1.0.0-rc2` | `18090:8090` | `./config.yml`、`./data`，内置 `/health` 健康检查 |
 
 说明：
 
