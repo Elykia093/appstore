@@ -310,11 +310,12 @@ def validate_renovate(validator: Validator) -> None:
         and rule.get("matchDatasources") == ["docker"]
         and "looplj/axonhub" in rule.get("matchPackageNames", [])
         and rule.get("allowedVersions") == "!/-(?:amd64|arm64)$/"
-        and rule.get("versioning") == "loose"
+        and rule.get("versioning") == "pep440"
+        and rule.get("ignoreUnstable") is False
     ]
     validator.require(
         bool(axonhub_version_rules),
-        "renovate.json must use loose versioning for looplj/axonhub prerelease tags and exclude architecture-specific tags",
+        "renovate.json must use pep440 versioning for looplj/axonhub, allow prerelease updates, and exclude architecture-specific tags",
     )
     new_api_version_rules = [
         (index, rule)
@@ -334,7 +335,7 @@ def validate_renovate(validator: Validator) -> None:
     if digest_rules and axonhub_version_rules:
         validator.require(
             axonhub_version_rules[-1][0] > digest_rules[-1][0],
-            "renovate.json looplj/axonhub loose versioning rule must appear after the general Docker rule",
+            "renovate.json looplj/axonhub pep440 versioning rule must appear after the general Docker rule",
         )
     if digest_rules and new_api_version_rules:
         validator.require(

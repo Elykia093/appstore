@@ -126,6 +126,7 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 本仓库使用 Renovate 和 GitHub Actions 维护镜像与版本目录：
 
 - `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
+- AxonHub 使用 `pep440` 比较版本并持续跟踪预发布版本，兼容上游 `rc2`、`rc.5` 等编号格式，避免点号变化导致自动更新停滞；架构专用 tag 仍排除。
 - `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表，等待 `validate` 成功后普通合并，并继续处理下一个串行更新。
 - `Check App Updates` 在应用更新合入 `main` 后立即发送 Telegram 成功通知；每天还会核查 6 个应用的 GitHub latest release 与 registry digest，并持续发送 stale 或检查失败摘要。
 - Telegram 通知需要同时配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。任一 Secret 缺失、检查异常或通知发送失败都会让工作流明确失败。

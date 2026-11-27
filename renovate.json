@@ -21,12 +21,13 @@
       "versioning": "docker"
     },
     {
-      "description": "Track AxonHub prereleases while excluding architecture-specific image tags.",
+      "description": "Compare AxonHub beta/rc numbers across tags such as rc2 and rc.5 while excluding architecture-specific tags.",
       "matchManagers": ["docker-compose"],
       "matchDatasources": ["docker"],
       "matchPackageNames": ["looplj/axonhub"],
       "allowedVersions": "!/-(?:amd64|arm64)$/",
-      "versioning": "loose"
+      "versioning": "pep440",
+      "ignoreUnstable": false
     },
     {
       "description": "Track New API prereleases with pinned digests while excluding architecture-specific tags.",
