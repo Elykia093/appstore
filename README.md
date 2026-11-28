@@ -38,13 +38,18 @@
 ├── mirror.sh
 ├── renovate.json
 └── scripts/
+    ├── appstore.py               # 统一命令入口
+    ├── appstore_metadata.py      # 应用信息、镜像与版本解析
+    ├── appstore_maintenance.py   # 模板校验、版本目录和 README 同步
+    └── appstore_updates.py       # 上游更新检查与通知
 ```
 
 - `data.yaml` 是应用商店根元数据，定义名称、标题和分类标签。
 - `apps/<app>/data.yml` 是应用元数据，`apps/<app>/<version>/data.yml` 是版本表单配置。
 - `apps/<app>/<version>/docker-compose.yml` 是 1Panel 安装时使用的编排模板。
 - `mirror.sh` 只读取 `/opt/mirror-config.env`，用于按需替换镜像仓库前缀。
-- `scripts/` 中的校验与同步脚本用于 CI、Renovate 和本地维护。
+- `scripts/appstore.py` 是本地维护、CI 和 Renovate 共用的唯一 Python 命令入口，提供 `validate`、`sync`、`updates` 三个子命令。
+- 其余三个 Python 文件是内部模块，分别管理公共数据与版本解析、校验与同步、更新检查与通知。
 
 ## 当前编排口径
 
@@ -59,7 +64,7 @@
 说明：
 
 - 版本目录必须写真实应用版本号，不使用 `latest` 作为目录名。
-- 除 New API 外，其它镜像保留 digest pin；New API 按模板可读性要求只保留版本 tag。
+- 所有应用镜像都保留 digest pin，README 编排表只展示 tag，便于阅读。
 - Lsky 的镜像公开 tag 只有 `latest`、`amd64`、`arm64`，所以 1Panel 版本目录写真实应用版本 `2.1`，compose 保留 `latest@sha256`。
 - 仓库根目录 `.env` 只作为本地文件存在，不参与安装模板和镜像替换逻辑。
 
@@ -127,8 +132,8 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 - `Renovate` 扫描 `apps/*/*/docker-compose.yml` 中的 Docker 镜像。
 - AxonHub 使用 `pep440` 比较版本并持续跟踪预发布版本，兼容上游 `rc2`、`rc.5` 等编号格式，避免点号变化导致自动更新停滞；架构专用 tag 仍排除。
-- `renovate-app-version.yml` 在 Renovate 分支中同步 1Panel 版本目录和本 README 的编排表，等待 `validate` 成功后普通合并，并继续处理下一个串行更新。
-- `Check App Updates` 在应用更新合入 `main` 后立即发送 Telegram 成功通知；每天还会核查 6 个应用的 GitHub latest release 与 registry digest，并持续发送 stale 或检查失败摘要。
+- `renovate-app-version.yml` 通过统一入口的 `sync` 命令处理本次提交改动的应用，同步 1Panel 版本目录和本 README 的编排表；浮动 tag 从上游 release 解析版本，等待 `validate` 成功后普通合并，并继续处理下一个串行更新。
+- `Check App Updates` 在应用更新合入 `main` 后立即发送 Telegram 成功通知；每天还会核查 5 个应用的 GitHub latest release 与 registry digest，并持续发送 stale 或检查失败摘要。
 - Telegram 通知需要同时配置 GitHub Secrets：`TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID`。任一 Secret 缺失、检查异常或通知发送失败都会让工作流明确失败。
 - 配置完成后可手动运行 `Check App Updates`，勾选 `Send a Telegram test notification` 验证 Bot 和 Chat ID。
 - `Validate App Store` 校验目录结构、compose 镜像、README 表格同步和脚本语法。
@@ -141,15 +146,25 @@ K8S_REG_MIRROR=registry.k8s.io.mirror
 
 也可以参考 [1Panel App Store Skills](https://github.com/1Panel-dev/1Panel-appstore-skills)，其中包含 1Panel 本地应用包的打包规范、模板和校验步骤。
 
-## 维护校验
+## 本地维护
 
-修改应用模板或 README 后运行：
+使用 Python 3.10 或更新版本。首次运行校验或测试前安装依赖（同步和更新检查只使用标准库）：
 
 ```bash
-python scripts/validate-appstore.py
-python scripts/sync-readme-app-table.py --check
-python scripts/check-updates.py --allow-stale
+python -m pip install PyYAML
 ```
+
+日常只需要记住一个入口：
+
+| 命令 | 用途 |
+| --- | --- |
+| `python scripts/appstore.py validate` | 离线、只读校验应用模板、版本目录及 README 表格 |
+| `python scripts/appstore.py sync` | 根据 compose tag 同步版本目录及 README 表格 |
+| `python scripts/appstore.py updates --allow-stale` | 联网检查上游 release 和镜像 digest，过期仅报告，检查失败仍返回错误 |
+
+修改应用模板后，先运行 `sync`，再运行 `validate`。`sync --check` 可预览同步差异而不写文件；本地同步遇到 `latest` 时保留现有版本目录，Renovate 使用 `--resolve-latest` 查询上游版本。`updates` 默认只报告检查结果，通知参数由 GitHub Actions 使用。
+
+修改维护逻辑后运行 `python -m unittest discover -s tests -p "test_*.py"`。完整选项可通过 `python scripts/appstore.py --help` 或各子命令的 `--help` 查看。
 
 ## 问题反馈
 

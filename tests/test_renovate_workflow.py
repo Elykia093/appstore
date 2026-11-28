@@ -59,14 +59,14 @@ class RenovateWorkflowTests(unittest.TestCase):
         )
         self.assertLess(
             step_names.index("Wait for Renovate to create the original PR"),
-            step_names.index("Run renovate-app-version.sh on updated files"),
+            step_names.index("Synchronize updated apps"),
         )
         self.assertLess(
             step_names.index("Wait for Renovate to create the original PR"),
             step_names.index("Commit & Push Changes"),
         )
         self.assertIn("original_sha=$(git rev-parse HEAD)", wait_script)
-        self.assertIn(r'select(.headRefOid == \"$original_sha\")', wait_script)
+        self.assertIn(r"select(.headRefOid == \"$original_sha\")", wait_script)
         self.assertIn("Waiting for Renovate to create it", wait_script)
         self.assertIn("No open PR appeared", wait_script)
 
@@ -171,8 +171,8 @@ class SupportingWorkflowTests(unittest.TestCase):
     def test_validation_is_read_only(self):
         text = VALIDATE_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("python scripts/sync-app-version-directories.py --check", text)
-        self.assertNotIn("Normalize Renovate PR app versions", text)
+        self.assertIn("python scripts/appstore.py validate", text)
+        self.assertNotIn("scripts/appstore.py sync", text)
 
     def test_update_notifications_cover_merge_and_daily_failures(self):
         text = CHECK_UPDATES_WORKFLOW.read_text(encoding="utf-8")

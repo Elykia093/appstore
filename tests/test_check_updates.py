@@ -1,22 +1,14 @@
 import contextlib
-import importlib.util
 import io
 import json
-import sys
+import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
 
-ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "scripts" / "check-updates.py"
-SPEC = importlib.util.spec_from_file_location("check_updates", MODULE_PATH)
-if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f"Unable to load {MODULE_PATH}")
-check_updates = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = check_updates
-SPEC.loader.exec_module(check_updates)
+from scripts import appstore, appstore_updates as check_updates
 
 
 class TelegramNotificationTests(unittest.TestCase):
@@ -240,6 +232,26 @@ class TelegramNotificationTests(unittest.TestCase):
         self.assertEqual(check_updates.status_exit_code(stale, allow_stale=False), 1)
         self.assertEqual(check_updates.status_exit_code(error, allow_stale=True), 1)
 
+    def test_collect_statuses_keeps_checking_after_one_app_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            apps_dir = Path(directory)
+            (apps_dir / "first").mkdir()
+            (apps_dir / "second").mkdir()
+            current = self.status("second", "1.0.0", "1.0.0")
+
+            with patch.object(check_updates, "APPS_DIR", apps_dir):
+                with patch.object(
+                    check_updates,
+                    "check_app",
+                    side_effect=[RuntimeError("upstream failed"), current],
+                ):
+                    statuses = check_updates.collect_statuses(object())
+
+        self.assertEqual(len(statuses), 2)
+        self.assertEqual(statuses[0].app, "first")
+        self.assertEqual(statuses[0].error, "RuntimeError: upstream failed")
+        self.assertIs(statuses[1], current)
+
     def test_telegram_test_notification_sends_expected_payload(self):
         response = io.BytesIO(b'{"ok": true}')
         with patch.object(
@@ -291,35 +303,47 @@ class TelegramNotificationTests(unittest.TestCase):
         self.assertIsNone(raised.exception.__cause__)
 
     def test_telegram_test_main_bypasses_update_checks(self):
-        with patch.object(check_updates, "load_resolver") as load_resolver:
+        with patch.object(check_updates, "collect_statuses") as collect_statuses:
             with patch.object(check_updates, "send_telegram_test") as send_test:
-                with patch.object(sys, "argv", ["check-updates.py", "--telegram-test"]):
-                    result = check_updates.main()
+                result = appstore.main(["updates", "--telegram-test"])
 
         self.assertEqual(result, 0)
         send_test.assert_called_once_with()
-        load_resolver.assert_not_called()
+        collect_statuses.assert_not_called()
 
     def test_notify_merged_main_bypasses_update_checks(self):
-        with patch.object(check_updates, "load_resolver") as load_resolver:
+        with patch.object(check_updates, "collect_statuses") as collect_statuses:
             with patch.object(check_updates, "notify_merged_updates") as notify:
-                with patch.object(
-                    sys,
-                    "argv",
+                result = appstore.main(
                     [
-                        "check-updates.py",
+                        "updates",
                         "--notify-merged",
                         "--before-sha",
                         "a" * 40,
                         "--after-sha",
                         "b" * 40,
                     ],
-                ):
-                    result = check_updates.main()
+                )
 
         self.assertEqual(result, 0)
         notify.assert_called_once_with("a" * 40, "b" * 40)
-        load_resolver.assert_not_called()
+        collect_statuses.assert_not_called()
+
+    def test_cli_rejects_invalid_notification_options_before_running(self):
+        invalid_options = (
+            ["--json", "--telegram-test"],
+            ["--notify-telegram", "--telegram-test"],
+            ["--notify-merged"],
+            ["--before-sha", "a" * 40],
+        )
+        with patch.object(check_updates, "run") as run:
+            for options in invalid_options:
+                with self.subTest(options=options):
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        with self.assertRaises(SystemExit) as raised:
+                            appstore.main(["updates", *options])
+                    self.assertEqual(raised.exception.code, 2)
+        run.assert_not_called()
 
 
 if __name__ == "__main__":

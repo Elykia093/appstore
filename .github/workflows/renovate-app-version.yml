@@ -104,61 +104,22 @@ jobs:
           git config --local user.email "githubaction@githubaction.com"
           git config --local user.name "github-action update-app-version"
 
-      - name: Get list of updated files by the last commit
+      - name: Set up Python
         if: steps.check-circular.outputs.skip != 'true'
-        id: updated-files
-        run: |
-          echo "files=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | tr '\n' ' ')" >> $GITHUB_OUTPUT
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.x"
 
-      - name: Run renovate-app-version.sh on updated files
+      - name: Synchronize updated apps
         if: steps.check-circular.outputs.skip != 'true'
         id: rename
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
-          chmod +x .github/workflows/renovate-app-version.sh
-
-          files="${{ steps.updated-files.outputs.files }}"
-          declare -a changed_apps=()
-
-          echo "Updated files: $files"
-
-          for file in $files; do
-            if [[ $file == *"docker-compose.yml"* ]]; then
-              echo "Processing file: $file"
-
-              app_name=$(echo $file | cut -d'/' -f 2)
-              old_version=$(echo $file | cut -d'/' -f 3)
-              echo "App name: $app_name, old version: $old_version"
-
-              # 提取第一个未标记 [ignore] 的 image 行，避免依赖 runner 预装解析工具。
-              image_line=""
-              image_line=$(awk '
-                /^[[:space:]]*image:/ && $0 !~ /\[ignore\]/ { print; exit }
-              ' "$file")
-
-              if [[ -z "$image_line" ]]; then
-                echo "No valid image line found in $file, skipping..."
-                continue
-              fi
-
-              # 提取image纯字符串，去除注释和多余空格
-              image=$(echo "$image_line" | sed -E 's/^[[:space:]]*image:[[:space:]]*([^ #]+).*/\1/')
-              echo "Selected image line: $image_line"
-              echo "Extracted image: $image"
-
-              trimmed_version=$(python3 scripts/resolve-app-version.py "$app_name" "$image")
-              echo "Resolved 1Panel app version: $trimmed_version"
-
-              changed_apps+=("${app_name}:${old_version}:${trimmed_version}")
-              echo "Calling renovate-app-version.sh with: $app_name, $old_version, $trimmed_version"
-              .github/workflows/renovate-app-version.sh "$app_name" "$old_version" "$trimmed_version"
-            fi
-          done
-
-          python3 scripts/sync-readme-app-table.py
-
-          echo "All changed apps: ${changed_apps[*]}"
-          echo "apps=$(IFS=, ; echo "${changed_apps[*]}")" >> $GITHUB_OUTPUT
+          python3 scripts/appstore.py sync \
+            --changed-in "$GITHUB_SHA" \
+            --resolve-latest \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Commit & Push Changes
         if: steps.check-circular.outputs.skip != 'true'

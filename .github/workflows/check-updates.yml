@@ -53,7 +53,7 @@ jobs:
           else
             args+=(--notify-telegram)
           fi
-          python scripts/check-updates.py "${args[@]}" | tee "$GITHUB_STEP_SUMMARY"
+          python scripts/appstore.py updates "${args[@]}" | tee "$GITHUB_STEP_SUMMARY"
 
       - name: Notify merged app updates
         if: github.event_name == 'push'
@@ -63,7 +63,7 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
         run: |
-          python scripts/check-updates.py \
+          python scripts/appstore.py updates \
             --notify-merged \
             --before-sha "$BEFORE_SHA" \
             --after-sha "$AFTER_SHA"

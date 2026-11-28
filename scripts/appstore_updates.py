@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """Check whether curated apps match upstream releases and registry digests."""
 
 from __future__ import annotations
 
 import argparse
 import http.client
-import importlib.util
 import json
 import os
 import re
@@ -15,14 +13,19 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from scripts import appstore_metadata as resolver
+from scripts.appstore_metadata import (
+    APP_DISPLAY_NAMES,
+    APPS_DIR,
+    ROOT,
+    compose_image,
+    version_directory as version_dir,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
-APPS_DIR = ROOT / "apps"
-RESOLVER_PATH = ROOT / "scripts" / "resolve-app-version.py"
 IMAGE_RE = re.compile(r"^\s*image:\s*([^ #]+)", re.MULTILINE)
 COMMIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 MANIFEST_ACCEPT = ", ".join(
@@ -33,13 +36,6 @@ MANIFEST_ACCEPT = ", ".join(
         "application/vnd.docker.distribution.manifest.v2+json",
     ]
 )
-APP_DISPLAY_NAMES = {
-    "anheyu": "Anheyu",
-    "axonhub": "AxonHub",
-    "cpa": "CLIProxyAPI",
-    "lsky": "Lsky Pro",
-    "new-api": "New API",
-}
 
 
 @dataclass
@@ -70,15 +66,6 @@ class MergedUpdate:
     new_version: str
     old_image: str
     new_image: str
-
-
-def load_resolver() -> Any:
-    spec = importlib.util.spec_from_file_location("app_version_resolver", RESOLVER_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load {RESOLVER_PATH}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def open_with_retry(request: urllib.request.Request) -> Any:
@@ -126,28 +113,6 @@ def latest_release_version(resolver: Any, app: str) -> str:
     if not isinstance(tag, str) or not tag:
         raise RuntimeError(f"Latest release for {repo} does not contain tag_name")
     return resolver.normalize(tag)
-
-
-def version_dir(app_dir: Path) -> Path:
-    versions = sorted(
-        path
-        for path in app_dir.iterdir()
-        if path.is_dir() and path.name != "__pycache__"
-    )
-    if len(versions) != 1:
-        raise RuntimeError(
-            f"{app_dir.name} must have exactly one version directory, got {[p.name for p in versions]}"
-        )
-    return versions[0]
-
-
-def compose_image(compose_path: Path) -> str:
-    match = IMAGE_RE.search(compose_path.read_text(encoding="utf-8"))
-    if not match:
-        raise RuntimeError(
-            f"{compose_path.relative_to(ROOT).as_posix()} does not contain an image line"
-        )
-    return match.group(1).strip()
 
 
 def parse_image(image: str) -> ImageRef:
@@ -570,8 +535,7 @@ def status_exit_code(statuses: list[UpdateStatus], allow_stale: bool) -> int:
     return 0
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--json", action="store_true", help="print machine-readable JSON"
     )
@@ -603,8 +567,9 @@ def main() -> int:
     parser.add_argument(
         "--after-sha", default="", help="commit after an app update merge"
     )
-    args = parser.parse_args()
 
+
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     notification_modes = sum(
         (args.notify_telegram, args.telegram_test, args.notify_merged)
     )
@@ -616,16 +581,20 @@ def main() -> int:
         parser.error("--notify-merged requires --before-sha and --after-sha")
     if not args.notify_merged and (args.before_sha or args.after_sha):
         parser.error("--before-sha and --after-sha require --notify-merged")
+
+
+def run_immediate_notification(args: argparse.Namespace) -> bool:
     if args.telegram_test:
         send_telegram_test()
-        return 0
+        return True
     if args.notify_merged:
         notify_merged_updates(args.before_sha, args.after_sha)
-        return 0
+        return True
+    return False
 
-    resolver = load_resolver()
+
+def collect_statuses(resolver: Any) -> list[UpdateStatus]:
     statuses: list[UpdateStatus] = []
-
     for app_dir in sorted(path for path in APPS_DIR.iterdir() if path.is_dir()):
         try:
             statuses.append(check_app(resolver, app_dir))
@@ -642,22 +611,23 @@ def main() -> int:
                     error=f"{type(exc).__name__}: {exc}",
                 )
             )
+    return statuses
 
-    if args.json:
+
+def print_statuses(statuses: list[UpdateStatus], *, as_json: bool) -> None:
+    if as_json:
         print(
             json.dumps(
-                [status.__dict__ for status in statuses], ensure_ascii=False, indent=2
+                [asdict(status) for status in statuses], ensure_ascii=False, indent=2
             )
         )
-    else:
-        print(render_markdown(statuses))
+        return
+    print(render_markdown(statuses))
 
-    if args.notify_telegram:
-        notify_telegram(statuses)
 
+def print_summary(statuses: list[UpdateStatus]) -> None:
     stale = changed_statuses(statuses)
     errors = error_statuses(statuses)
-    result = status_exit_code(statuses, args.allow_stale)
     if errors:
         print(
             f"\nUpdate check failed: {len(errors)} app(s) could not be checked; "
@@ -668,8 +638,17 @@ def main() -> int:
         print(f"\nUpdate check completed: {len(stale)} app(s) are stale.")
     else:
         print(f"\nUpdate check passed: {len(statuses)} app(s) are current.")
-    return result
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+def run(args: argparse.Namespace) -> int:
+    if run_immediate_notification(args):
+        return 0
+
+    statuses = collect_statuses(resolver)
+    print_statuses(statuses, as_json=args.json)
+
+    if args.notify_telegram:
+        notify_telegram(statuses)
+
+    print_summary(statuses)
+    return status_exit_code(statuses, args.allow_stale)
